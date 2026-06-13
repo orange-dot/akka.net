@@ -1404,10 +1404,10 @@ namespace Akka.Streams.Dsl
         public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> DivertTo<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that, System.Func<TOut, bool> when) { }
         public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat3> DivertToMaterialized<TIn, TOut, TMat, TMat2, TMat3>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat2> that, System.Func<TOut, bool> when, System.Func<TMat, TMat2, TMat3> materializerFunction) { }
         public static Akka.Streams.Dsl.Flow<TIn, TOut2, TMat> Expand<TIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut1, TMat> flow, System.Func<TOut1, System.Collections.Generic.IEnumerator<TOut2>> extrapolate) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> GroupBy<TIn, TOut, TMat, TKey>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, TKey> groupingFunc) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> GroupBy<TIn, TOut, TMat, TKey>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, TKey> groupingFunc, bool allowClosedSubstreamRecreation) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> GroupBy<TIn, TOut, TMat, TKey>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, int maxSubstreams, System.Func<TOut, TKey> groupingFunc) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> GroupBy<TIn, TOut, TMat, TKey>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, int maxSubstreams, System.Func<TOut, TKey> groupingFunc, bool allowClosedSubstreamRecreation) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat> GroupBy<TIn, TOut, TMat, TKey>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, TKey> groupingFunc) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat> GroupBy<TIn, TOut, TMat, TKey>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, TKey> groupingFunc, bool allowClosedSubstreamRecreation) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat> GroupBy<TIn, TOut, TMat, TKey>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, int maxSubstreams, System.Func<TOut, TKey> groupingFunc) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat> GroupBy<TIn, TOut, TMat, TKey>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, int maxSubstreams, System.Func<TOut, TKey> groupingFunc, bool allowClosedSubstreamRecreation) { }
         public static Akka.Streams.Dsl.Flow<TIn, System.Collections.Generic.IEnumerable<TOut>, TMat> Grouped<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, int n) { }
         public static Akka.Streams.Dsl.Flow<TIn, System.Collections.Generic.IEnumerable<TOut>, TMat> GroupedWeightedWithin<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, long maxWeight, int maxNumber, System.TimeSpan interval, System.Func<TOut, long> costFn) { }
         public static Akka.Streams.Dsl.Flow<TIn, System.Collections.Generic.IEnumerable<TOut>, TMat> GroupedWithin<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, int n, System.TimeSpan timeout) { }
@@ -1457,10 +1457,10 @@ namespace Akka.Streams.Dsl
         public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> SkipWhile<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Predicate<TOut> predicate) { }
         public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> SkipWithin<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.TimeSpan duration) { }
         public static Akka.Streams.Dsl.Flow<TIn, System.Collections.Generic.IEnumerable<TOut>, TMat> Sliding<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, int n, int step = 1) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> SplitAfter<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, bool> predicate) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> SplitAfter<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, Akka.Streams.SubstreamCancelStrategy substreamCancelStrategy, System.Func<TOut, bool> predicate) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> SplitWhen<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, bool> predicate) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> SplitWhen<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, Akka.Streams.SubstreamCancelStrategy substreamCancelStrategy, System.Func<TOut, bool> predicate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat> SplitAfter<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, bool> predicate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat> SplitAfter<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, Akka.Streams.SubstreamCancelStrategy substreamCancelStrategy, System.Func<TOut, bool> predicate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat> SplitWhen<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, bool> predicate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat> SplitWhen<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, Akka.Streams.SubstreamCancelStrategy substreamCancelStrategy, System.Func<TOut, bool> predicate) { }
         public static Akka.Streams.Dsl.Flow<T, TOut, TMat> StatefulSelectMany<T, TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<T, TIn, TMat> flow, System.Func<System.Func<TIn, System.Collections.Generic.IEnumerable<TOut>>> mapConcaterFactory) { }
         public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> Sum<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, System.Func<TOut, TOut, TOut> reduce) { }
         public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> Take<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow, long n) { }
@@ -1480,6 +1480,93 @@ namespace Akka.Streams.Dsl
         public static Akka.Streams.Dsl.Flow<TIn, System.ValueTuple<T1, T2>, TMat> Zip<TIn, T1, T2, TMat>(this Akka.Streams.Dsl.Flow<TIn, T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other) { }
         public static Akka.Streams.Dsl.Flow<TIn, T3, TMat> ZipWith<TIn, T1, T2, T3, TMat>(this Akka.Streams.Dsl.Flow<TIn, T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other, System.Func<T1, T2, T3> combine) { }
         public static Akka.Streams.Dsl.Flow<TIn, System.ValueTuple<TOut, long>, TMat> ZipWithIndex<TIn, TOut, TMat>(this Akka.Streams.Dsl.Flow<TIn, TOut, TMat> flow) { }
+    }
+    public static class FlowSubFlowOperations
+    {
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Aggregate<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, TOut2 zero, System.Func<TOut2, TOut1, TOut2> fold) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> AggregateAsync<TFlowIn, TIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TIn, TMat> flow, TOut zero, System.Func<TOut, TIn, System.Threading.Tasks.Task<TOut>> fold) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> AlsoTo<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> AlsoTo<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that, bool propagateFailure) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> BackpressureTimeout<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Batch<TFlowIn, TOut, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, long max, System.Func<TOut, TOut2> seed, System.Func<TOut2, TOut, TOut2> aggregate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> BatchWeighted<TFlowIn, TOut, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, long max, System.Func<TOut, long> costFunction, System.Func<TOut, TOut2> seed, System.Func<TOut2, TOut, TOut2> aggregate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Buffer<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, int size, Akka.Streams.OverflowStrategy strategy) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Collect<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, System.Func<TOut1, TOut2> collector) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Collect<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, System.Func<TOut1, bool>? isDefined, System.Func<TOut1, TOut2> collector) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> CompletionTimeout<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Concat<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> ConcatMany<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, System.Func<TOut1, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat>> flatten) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Conflate<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Func<TOut, TOut, TOut> aggregate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TSeed, TMat> ConflateWithSeed<TFlowIn, TOut, TMat, TSeed>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Func<TOut, TSeed> seed, System.Func<TSeed, TOut, TSeed> aggregate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Delay<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan of, Akka.Streams.DelayOverflowStrategy? strategy = default) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Detach<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> DivertTo<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that, System.Func<TOut, bool> when) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Expand<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, System.Func<TOut1, System.Collections.Generic.IEnumerator<TOut2>> extrapolate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, System.Collections.Generic.IEnumerable<TOut>, TMat> Grouped<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, int n) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, System.Collections.Generic.IEnumerable<TOut>, TMat> GroupedWeightedWithin<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, long maxWeight, int maxNumber, System.TimeSpan interval, System.Func<TOut, long> costFn) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, System.Collections.Generic.IEnumerable<TOut>, TMat> GroupedWithin<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, int n, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> IdleTimeout<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> InitialDelay<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan delay) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> InitialTimeout<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T2, TMat> Interleave<TFlowIn, T1, T2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other, int segmentSize)
+            where T1 : T2 { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Intersperse<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, TOut inject) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Intersperse<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, TOut start, TOut inject, TOut end) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TInjected, TMat> KeepAlive<TFlowIn, TOut, TInjected, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan timeout, System.Func<TInjected> injectElement)
+            where TOut : TInjected { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T, TMat> Limit<TFlowIn, T, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T, TMat> flow, long max) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T, TMat> LimitWeighted<TFlowIn, T, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T, TMat> flow, long max, System.Func<T, long> costFunc) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Log<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, string name, System.Func<TOut, object> extract = null, Akka.Event.ILoggingAdapter log = null) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Merge<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat> other, bool eagerComplete = false)
+            where TOut1 : TOut2 { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> MergeMany<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, int breadth, System.Func<TOut1, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat>> flatten) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> MergeSorted<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other)
+            where TOut : System.IComparable<TOut> { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> MergeSorted<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other, System.Collections.Generic.IComparer<TOut> comparer) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> MergeSorted<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other, System.Func<TOut, TOut, int> orderFunc) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T, TMat> OrElse<TFlowIn, T, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T>, TMat> secondary) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, System.ValueTuple<System.Collections.Immutable.IImmutableList<TOut>, Akka.Streams.Dsl.Source<TOut, Akka.NotUsed>>, TMat> PrefixAndTail<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, int n) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Prepend<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat> that)
+            where TOut1 : TOut2 { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, Akka.Util.Option<TOut>, TMat> Recover<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Func<System.Exception, Akka.Util.Option<TOut>> partialFunc) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> RecoverWith<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Func<System.Exception, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat>> partialFunc) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> RecoverWithRetries<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Func<System.Exception, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat>> partialFunc, int attempts) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Scan<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, TOut2 zero, System.Func<TOut2, TOut1, TOut2> scan) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> ScanAsync<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, TOut2 zero, System.Func<TOut2, TOut1, System.Threading.Tasks.Task<TOut2>> scan) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Select<TFlowIn, TIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TIn, TMat> flow, System.Func<TIn, TOut> mapper) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> SelectAsync<TFlowIn, TIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TIn, TMat> flow, int parallelism, System.Func<TIn, System.Threading.Tasks.Task<TOut>> asyncMapper) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> SelectAsyncUnordered<TFlowIn, TIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TIn, TMat> flow, int parallelism, System.Func<TIn, System.Threading.Tasks.Task<TOut>> asyncMapper) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> SelectError<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Func<System.Exception, System.Exception> selector) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> SelectMany<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, System.Func<TOut1, System.Collections.Generic.IEnumerable<TOut2>> mapConcater) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Skip<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, long n) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> SkipWhile<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Predicate<TOut> predicate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> SkipWithin<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan duration) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, System.Collections.Generic.IEnumerable<TOut>, TMat> Sliding<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, int n, int step = 1) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> StatefulSelectMany<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, System.Func<System.Func<TOut1, System.Collections.Generic.IEnumerable<TOut2>>> mapConcaterFactory) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Sum<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Func<TOut, TOut, TOut> reduce) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Take<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, long n) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> TakeWhile<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Predicate<TOut> predicate, bool inclusive = false) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> TakeWithin<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.TimeSpan duration) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Throttle<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, int elements, System.TimeSpan per, int maximumBurst, Akka.Streams.ThrottleMode mode) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Throttle<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, int cost, System.TimeSpan per, int maximumBurst, System.Func<TOut, int> calculateCost, Akka.Streams.ThrottleMode mode) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut2, TMat> Transform<TFlowIn, TOut1, TOut2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow, System.Func<Akka.Streams.Stage.IStage<TOut1, TOut2>> stageFactory) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> Where<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Predicate<TOut> predicate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> WhereNot<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Predicate<TOut> predicate) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> WireTap<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> WireTap<TFlowIn, TOut, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut, TMat> flow, System.Action<TOut> action) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, System.ValueTuple<T1, T2>, TMat> Zip<TFlowIn, T1, T2, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T3, TMat> ZipWith<TFlowIn, T1, T2, T3, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other, System.Func<T1, T2, T3> combine) { }
+        public static Akka.Streams.Dsl.FlowSubFlow<TFlowIn, System.ValueTuple<TOut1, long>, TMat> ZipWithIndex<TFlowIn, TOut1, TMat>(this Akka.Streams.Dsl.FlowSubFlow<TFlowIn, TOut1, TMat> flow) { }
+    }
+    public abstract class FlowSubFlow<TIn, TOut, TMat> : Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>>
+    {
+        protected FlowSubFlow() { }
+        [System.Runtime.CompilerServices.PreserveBaseOverrides]
+        public virtual Akka.Streams.Dsl.Flow<TIn, TOut, TMat> ConcatSubstream() { }
+        [System.Runtime.CompilerServices.PreserveBaseOverrides]
+        public virtual Akka.Streams.Dsl.Flow<TIn, TOut, TMat> MergeSubstreams() { }
+        [System.Runtime.CompilerServices.PreserveBaseOverrides]
+        public abstract Akka.Streams.Dsl.Flow<TIn, TOut, TMat> MergeSubstreamsWithParallelism(int parallelism);
     }
     public static class FlowWithContext
     {
@@ -2112,8 +2199,8 @@ namespace Akka.Streams.Dsl
         public static Akka.Streams.Dsl.Source<TOut, TMat> DivertTo<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that, System.Func<TOut, bool> when) { }
         public static Akka.Streams.Dsl.Source<TOut, TMat3> DivertToMaterialized<TOut, TMat, TMat2, TMat3>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat2> that, System.Func<TOut, bool> when, System.Func<TMat, TMat2, TMat3> materializerFunction) { }
         public static Akka.Streams.Dsl.Source<TOut2, TMat> Expand<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.Source<TOut1, TMat> flow, System.Func<TOut1, System.Collections.Generic.IEnumerator<TOut2>> extrapolate) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> GroupBy<TOut, TMat, TKey>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.Func<TOut, TKey> groupingFunc) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> GroupBy<TOut, TMat, TKey>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, int maxSubstreams, System.Func<TOut, TKey> groupingFunc) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> GroupBy<TOut, TMat, TKey>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.Func<TOut, TKey> groupingFunc) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> GroupBy<TOut, TMat, TKey>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, int maxSubstreams, System.Func<TOut, TKey> groupingFunc) { }
         public static Akka.Streams.Dsl.Source<System.Collections.Generic.IEnumerable<TOut>, TMat> Grouped<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, int n) { }
         public static Akka.Streams.Dsl.Source<System.Collections.Generic.IEnumerable<TOut>, TMat> GroupedWeightedWithin<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, long maxWeight, System.TimeSpan interval, System.Func<TOut, long> costFn) { }
         public static Akka.Streams.Dsl.Source<System.Collections.Generic.IEnumerable<TOut>, TMat> GroupedWeightedWithin<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, long maxWeight, int maxNumber, System.TimeSpan interval, System.Func<TOut, long> costFn) { }
@@ -2164,10 +2251,10 @@ namespace Akka.Streams.Dsl
         public static Akka.Streams.Dsl.Source<TOut, TMat> SkipWhile<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.Predicate<TOut> predicate) { }
         public static Akka.Streams.Dsl.Source<TOut, TMat> SkipWithin<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.TimeSpan duration) { }
         public static Akka.Streams.Dsl.Source<System.Collections.Generic.IEnumerable<TOut>, TMat> Sliding<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, int n, int step = 1) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> SplitAfter<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.Func<TOut, bool> predicate) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> SplitAfter<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, Akka.Streams.SubstreamCancelStrategy substreamCancelStrategy, System.Func<TOut, bool> predicate) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> SplitWhen<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.Func<TOut, bool> predicate) { }
-        public static Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> SplitWhen<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, Akka.Streams.SubstreamCancelStrategy substreamCancelStrategy, System.Func<TOut, bool> predicate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SplitAfter<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.Func<TOut, bool> predicate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SplitAfter<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, Akka.Streams.SubstreamCancelStrategy substreamCancelStrategy, System.Func<TOut, bool> predicate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SplitWhen<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.Func<TOut, bool> predicate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SplitWhen<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, Akka.Streams.SubstreamCancelStrategy substreamCancelStrategy, System.Func<TOut, bool> predicate) { }
         public static Akka.Streams.Dsl.Source<TOut2, TMat> StatefulSelectMany<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.Source<TOut1, TMat> flow, System.Func<System.Func<TOut1, System.Collections.Generic.IEnumerable<TOut2>>> mapConcaterFactory) { }
         public static Akka.Streams.Dsl.Source<TOut, TMat> Sum<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, System.Func<TOut, TOut, TOut> reduce) { }
         public static Akka.Streams.Dsl.Source<TOut, TMat> Take<TOut, TMat>(this Akka.Streams.Dsl.Source<TOut, TMat> flow, long n) { }
@@ -2187,6 +2274,93 @@ namespace Akka.Streams.Dsl
         public static Akka.Streams.Dsl.Source<System.ValueTuple<T1, T2>, TMat> Zip<T1, T2, TMat>(this Akka.Streams.Dsl.Source<T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other) { }
         public static Akka.Streams.Dsl.Source<T3, TMat> ZipWith<T1, T2, T3, TMat>(this Akka.Streams.Dsl.Source<T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other, System.Func<T1, T2, T3> combine) { }
         public static Akka.Streams.Dsl.Source<System.ValueTuple<TOut1, long>, TMat> ZipWithIndex<TOut1, TMat>(this Akka.Streams.Dsl.Source<TOut1, TMat> flow) { }
+    }
+    public static class SourceSubFlowOperations
+    {
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Aggregate<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, TOut2 zero, System.Func<TOut2, TOut1, TOut2> fold) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> AggregateAsync<TIn, TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TIn, TMat> flow, TOut zero, System.Func<TOut, TIn, System.Threading.Tasks.Task<TOut>> fold) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> AlsoTo<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> AlsoTo<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that, bool propagateFailure) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> BackpressureTimeout<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Batch<TOut, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, long max, System.Func<TOut, TOut2> seed, System.Func<TOut2, TOut, TOut2> aggregate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> BatchWeighted<TOut, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, long max, System.Func<TOut, long> costFunction, System.Func<TOut, TOut2> seed, System.Func<TOut2, TOut, TOut2> aggregate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Buffer<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, int size, Akka.Streams.OverflowStrategy strategy) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Collect<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, System.Func<TOut1, TOut2> collector) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Collect<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, System.Func<TOut1, bool>? isDefined, System.Func<TOut1, TOut2> collector) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> CompletionTimeout<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Concat<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> ConcatMany<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, System.Func<TOut1, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat>> flatten) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Conflate<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Func<TOut, TOut, TOut> aggregate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TSeed, TMat> ConflateWithSeed<TOut, TMat, TSeed>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Func<TOut, TSeed> seed, System.Func<TSeed, TOut, TSeed> aggregate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Delay<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan of, Akka.Streams.DelayOverflowStrategy? strategy = default) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Detach<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> DivertTo<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that, System.Func<TOut, bool> when) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Expand<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, System.Func<TOut1, System.Collections.Generic.IEnumerator<TOut2>> extrapolate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<System.Collections.Generic.IEnumerable<TOut>, TMat> Grouped<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, int n) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<System.Collections.Generic.IEnumerable<TOut>, TMat> GroupedWeightedWithin<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, long maxWeight, int maxNumber, System.TimeSpan interval, System.Func<TOut, long> costFn) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<System.Collections.Generic.IEnumerable<TOut>, TMat> GroupedWithin<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, int n, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> IdleTimeout<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> InitialDelay<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan delay) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> InitialTimeout<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan timeout) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<T2, TMat> Interleave<T1, T2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other, int segmentSize)
+            where T1 : T2 { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Intersperse<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, TOut inject) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Intersperse<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, TOut start, TOut inject, TOut end) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TInjected, TMat> KeepAlive<TOut, TInjected, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan timeout, System.Func<TInjected> injectElement)
+            where TOut : TInjected { }
+        public static Akka.Streams.Dsl.SourceSubFlow<T, TMat> Limit<T, TMat>(this Akka.Streams.Dsl.SourceSubFlow<T, TMat> flow, long max) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<T, TMat> LimitWeighted<T, TMat>(this Akka.Streams.Dsl.SourceSubFlow<T, TMat> flow, long max, System.Func<T, long> costFunc) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Log<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, string name, System.Func<TOut, object> extract = null, Akka.Event.ILoggingAdapter log = null) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Merge<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat> other, bool eagerComplete = false)
+            where TOut1 : TOut2 { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> MergeMany<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, int breadth, System.Func<TOut1, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat>> flatten) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> MergeSorted<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other)
+            where TOut : System.IComparable<TOut> { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> MergeSorted<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other, System.Collections.Generic.IComparer<TOut> comparer) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> MergeSorted<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other, System.Func<TOut, TOut, int> orderFunc) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<T, TMat> OrElse<T, TMat>(this Akka.Streams.Dsl.SourceSubFlow<T, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T>, TMat> secondary) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<System.ValueTuple<System.Collections.Immutable.IImmutableList<TOut>, Akka.Streams.Dsl.Source<TOut, Akka.NotUsed>>, TMat> PrefixAndTail<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, int n) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Prepend<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat> that)
+            where TOut1 : TOut2 { }
+        public static Akka.Streams.Dsl.SourceSubFlow<Akka.Util.Option<TOut>, TMat> Recover<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Func<System.Exception, Akka.Util.Option<TOut>> partialFunc) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> RecoverWith<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Func<System.Exception, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat>> partialFunc) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> RecoverWithRetries<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Func<System.Exception, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat>> partialFunc, int attempts) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Scan<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, TOut2 zero, System.Func<TOut2, TOut1, TOut2> scan) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> ScanAsync<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, TOut2 zero, System.Func<TOut2, TOut1, System.Threading.Tasks.Task<TOut2>> scan) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Select<TIn, TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TIn, TMat> flow, System.Func<TIn, TOut> mapper) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SelectAsync<TIn, TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TIn, TMat> flow, int parallelism, System.Func<TIn, System.Threading.Tasks.Task<TOut>> asyncMapper) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SelectAsyncUnordered<TIn, TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TIn, TMat> flow, int parallelism, System.Func<TIn, System.Threading.Tasks.Task<TOut>> asyncMapper) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SelectError<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Func<System.Exception, System.Exception> selector) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> SelectMany<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, System.Func<TOut1, System.Collections.Generic.IEnumerable<TOut2>> mapConcater) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Skip<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, long n) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SkipWhile<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Predicate<TOut> predicate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> SkipWithin<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan duration) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<System.Collections.Generic.IEnumerable<TOut>, TMat> Sliding<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, int n, int step = 1) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> StatefulSelectMany<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, System.Func<System.Func<TOut1, System.Collections.Generic.IEnumerable<TOut2>>> mapConcaterFactory) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Sum<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Func<TOut, TOut, TOut> reduce) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Take<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, long n) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> TakeWhile<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Predicate<TOut> predicate, bool inclusive = false) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> TakeWithin<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.TimeSpan duration) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Throttle<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, int elements, System.TimeSpan per, int maximumBurst, Akka.Streams.ThrottleMode mode) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Throttle<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, int cost, System.TimeSpan per, int maximumBurst, System.Func<TOut, int> calculateCost, Akka.Streams.ThrottleMode mode) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut2, TMat> Transform<TOut1, TOut2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow, System.Func<Akka.Streams.Stage.IStage<TOut1, TOut2>> stageFactory) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> Where<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Predicate<TOut> predicate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> WhereNot<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Predicate<TOut> predicate) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> WireTap<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat> that) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> WireTap<TOut, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut, TMat> flow, System.Action<TOut> action) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<System.ValueTuple<T1, T2>, TMat> Zip<T1, T2, TMat>(this Akka.Streams.Dsl.SourceSubFlow<T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<T3, TMat> ZipWith<T1, T2, T3, TMat>(this Akka.Streams.Dsl.SourceSubFlow<T1, TMat> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T2>, TMat> other, System.Func<T1, T2, T3> combine) { }
+        public static Akka.Streams.Dsl.SourceSubFlow<System.ValueTuple<TOut1, long>, TMat> ZipWithIndex<TOut1, TMat>(this Akka.Streams.Dsl.SourceSubFlow<TOut1, TMat> flow) { }
+    }
+    public abstract class SourceSubFlow<TOut, TMat> : Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>>
+    {
+        protected SourceSubFlow() { }
+        [System.Runtime.CompilerServices.PreserveBaseOverrides]
+        public virtual Akka.Streams.Dsl.Source<TOut, TMat> ConcatSubstream() { }
+        [System.Runtime.CompilerServices.PreserveBaseOverrides]
+        public virtual Akka.Streams.Dsl.Source<TOut, TMat> MergeSubstreams() { }
+        [System.Runtime.CompilerServices.PreserveBaseOverrides]
+        public abstract Akka.Streams.Dsl.Source<TOut, TMat> MergeSubstreamsWithParallelism(int parallelism);
     }
     public static class SourceWithContext
     {
@@ -3210,6 +3384,16 @@ namespace Akka.Streams.Implementation
         public override Akka.Streams.Implementation.FlowNameCounter CreateExtension(Akka.Actor.ExtendedActorSystem system) { }
         public static Akka.Streams.Implementation.FlowNameCounter Instance(Akka.Actor.ActorSystem system) { }
     }
+    public class FlowSubFlowImpl<TIn, TOut, TMat> : Akka.Streams.Dsl.FlowSubFlow<TIn, TOut, TMat>
+    {
+        public FlowSubFlowImpl(Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> inner) { }
+        public override Akka.Streams.Dsl.IFlow<TOut, TMat2> MapMaterializedValue<TMat2>(System.Func<TMat, TMat2> mapFunc) { }
+        public override Akka.Streams.Dsl.Flow<TIn, TOut, TMat> MergeSubstreamsWithParallelism(int parallelism) { }
+        public override TMat2 RunWith<TMat2>(Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat2> sink, Akka.Streams.IMaterializer materializer) { }
+        public override Akka.Streams.Dsl.Sink<TIn, TMat> To<TMat2>(Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat2> sink) { }
+        public override Akka.Streams.Dsl.IFlow<T2, TMat> Via<T2, TMat2>(Akka.Streams.IGraph<Akka.Streams.FlowShape<TOut, T2>, TMat2> flow) { }
+        public override Akka.Streams.Dsl.IFlow<T2, TMat3> ViaMaterialized<T2, TMat2, TMat3>(Akka.Streams.IGraph<Akka.Streams.FlowShape<TOut, T2>, TMat2> flow, System.Func<TMat, TMat2, TMat3> combine) { }
+    }
     public sealed class FusedModule : Akka.Streams.Implementation.Module
     {
         public FusedModule(System.Collections.Immutable.ImmutableArray<Akka.Streams.Implementation.IModule> subModules, Akka.Streams.Shape shape, System.Collections.Immutable.IImmutableDictionary<Akka.Streams.OutPort, Akka.Streams.InPort> downstreams, System.Collections.Immutable.IImmutableDictionary<Akka.Streams.InPort, Akka.Streams.OutPort> upstreams, Akka.Streams.Implementation.StreamLayout.IMaterializedValueNode materializedValueComputation, Akka.Streams.Attributes attributes, Akka.Streams.Implementation.StructuralInfoModule info) { }
@@ -3723,6 +3907,16 @@ namespace Akka.Streams.Implementation
         protected abstract Akka.Streams.Implementation.SourceModule<TOut, TMat> NewInstance(Akka.Streams.SourceShape<TOut> shape);
         public override Akka.Streams.Implementation.IModule ReplaceShape(Akka.Streams.Shape shape) { }
         public override sealed string ToString() { }
+    }
+    public class SourceSubFlowImpl<TOut, TMat> : Akka.Streams.Dsl.SourceSubFlow<TOut, TMat>
+    {
+        public SourceSubFlowImpl(Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> inner) { }
+        public override Akka.Streams.Dsl.IFlow<TOut, TMat2> MapMaterializedValue<TMat2>(System.Func<TMat, TMat2> mapFunc) { }
+        public override Akka.Streams.Dsl.Source<TOut, TMat> MergeSubstreamsWithParallelism(int parallelism) { }
+        public override TMat2 RunWith<TMat2>(Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat2> sink, Akka.Streams.IMaterializer materializer) { }
+        public override Akka.Streams.Dsl.IRunnableGraph<TMat> To<TMat2>(Akka.Streams.IGraph<Akka.Streams.SinkShape<TOut>, TMat2> sink) { }
+        public override Akka.Streams.Dsl.IFlow<T2, TMat> Via<T2, TMat2>(Akka.Streams.IGraph<Akka.Streams.FlowShape<TOut, T2>, TMat2> flow) { }
+        public override Akka.Streams.Dsl.IFlow<T2, TMat3> ViaMaterialized<T2, TMat2, TMat3>(Akka.Streams.IGraph<Akka.Streams.FlowShape<TOut, T2>, TMat2> flow, System.Func<TMat, TMat2, TMat3> combine) { }
     }
     public static class StreamLayout
     {

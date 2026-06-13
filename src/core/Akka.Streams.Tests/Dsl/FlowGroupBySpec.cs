@@ -90,14 +90,15 @@ namespace Akka.Streams.Tests.Dsl
         {
             await this.AssertAllStagesStoppedAsync(async () =>
             {
-                var source = Source.From(new[] { "Aaa", "Abb", "Bcc", "Cdd", "Cee" })
+                // #5381: the chain stays a Source through GroupBy/Grouped/MergeSubstreams, so no cast
+                // is needed before RunWith (previously this required ((Source<...>)source)).
+                Source<IEnumerable<IEnumerable<string>>, NotUsed> source = Source.From(new[] { "Aaa", "Abb", "Bcc", "Cdd", "Cee" })
                     .GroupBy(3, s => s.Substring(0, 1))
                     .Grouped(10)
                     .MergeSubstreams()
                     .Grouped(10);
-                var task =
-                    ((Source<IEnumerable<IEnumerable<string>>, NotUsed>)source).RunWith(
-                        Sink.First<IEnumerable<IEnumerable<string>>>(), Materializer);
+                var task = source.RunWith(
+                    Sink.First<IEnumerable<IEnumerable<string>>>(), Materializer);
 
                 await task.WaitAsync(3.Seconds());
                 task.Result.OrderBy(e => e.First())
