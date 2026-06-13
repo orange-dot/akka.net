@@ -148,6 +148,35 @@ namespace Akka.Streams.Dsl
         }
 
         /// <summary>
+        /// Transform this source sub-flow by applying the given <paramref name="mapper"/> function to each element.
+        /// </summary>
+        /// <typeparam name="TIn">TBD</typeparam>
+        /// <typeparam name="TOut">TBD</typeparam>
+        /// <typeparam name="TMat">TBD</typeparam>
+        /// <param name="flow">TBD</param>
+        /// <param name="mapper">TBD</param>
+        /// <returns>TBD</returns>
+        public static SourceSubFlow<TOut, TMat> Select<TIn, TOut, TMat>(this SourceSubFlow<TIn, TMat> flow, Func<TIn, TOut> mapper)
+        {
+            return (SourceSubFlow<TOut, TMat>)InternalFlowOperations.Select(flow, mapper);
+        }
+
+        /// <summary>
+        /// Transform this flow sub-flow by applying the given <paramref name="mapper"/> function to each element.
+        /// </summary>
+        /// <typeparam name="TFlowIn">TBD</typeparam>
+        /// <typeparam name="TIn">TBD</typeparam>
+        /// <typeparam name="TOut">TBD</typeparam>
+        /// <typeparam name="TMat">TBD</typeparam>
+        /// <param name="flow">TBD</param>
+        /// <param name="mapper">TBD</param>
+        /// <returns>TBD</returns>
+        public static FlowSubFlow<TFlowIn, TOut, TMat> Select<TFlowIn, TIn, TOut, TMat>(this FlowSubFlow<TFlowIn, TIn, TMat> flow, Func<TIn, TOut> mapper)
+        {
+            return (FlowSubFlow<TFlowIn, TOut, TMat>)InternalFlowOperations.Select(flow, mapper);
+        }
+
+        /// <summary>
         /// Transform this stream by applying the given <paramref name="mapper"/> function to each of the elements
         /// as they pass through this processing step.
         /// <para>
@@ -779,6 +808,33 @@ namespace Akka.Streams.Dsl
         public static SubFlow<TOut, TMat, TClosed> Sum<TOut, TMat, TClosed>(this SubFlow<TOut, TMat, TClosed> flow, Func<TOut, TOut, TOut> reduce)
         {
             return (SubFlow<TOut, TMat, TClosed>)InternalFlowOperations.Sum(flow, reduce);
+        }
+
+        /// <summary>
+        /// Apply the given function towards the current and next element of this source sub-flow.
+        /// </summary>
+        /// <typeparam name="TOut">TBD</typeparam>
+        /// <typeparam name="TMat">TBD</typeparam>
+        /// <param name="flow">TBD</param>
+        /// <param name="reduce">TBD</param>
+        /// <returns>TBD</returns>
+        public static SourceSubFlow<TOut, TMat> Sum<TOut, TMat>(this SourceSubFlow<TOut, TMat> flow, Func<TOut, TOut, TOut> reduce)
+        {
+            return (SourceSubFlow<TOut, TMat>)InternalFlowOperations.Sum(flow, reduce);
+        }
+
+        /// <summary>
+        /// Apply the given function towards the current and next element of this flow sub-flow.
+        /// </summary>
+        /// <typeparam name="TIn">TBD</typeparam>
+        /// <typeparam name="TOut">TBD</typeparam>
+        /// <typeparam name="TMat">TBD</typeparam>
+        /// <param name="flow">TBD</param>
+        /// <param name="reduce">TBD</param>
+        /// <returns>TBD</returns>
+        public static FlowSubFlow<TIn, TOut, TMat> Sum<TIn, TOut, TMat>(this FlowSubFlow<TIn, TOut, TMat> flow, Func<TOut, TOut, TOut> reduce)
+        {
+            return (FlowSubFlow<TIn, TOut, TMat>)InternalFlowOperations.Sum(flow, reduce);
         }
 
         /// <summary>

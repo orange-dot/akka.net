@@ -100,4 +100,45 @@ namespace Akka.Streams.Dsl
         /// <returns>TBD</returns>
         public virtual IFlow<TOut, TMat> ConcatSubstream() => MergeSubstreamsWithParallelism(1);
     }
+
+    /// <summary>
+    /// A <see cref="SubFlow{TOut,TMat,TClosed}"/> created from a <see cref="Source{TOut,TMat}"/>.
+    /// </summary>
+    /// <typeparam name="TOut">TBD</typeparam>
+    /// <typeparam name="TMat">TBD</typeparam>
+    public abstract class SourceSubFlow<TOut, TMat> : SubFlow<TOut, TMat, IRunnableGraph<TMat>>
+    {
+        /// <inheritdoc/>
+        public override abstract SourceSubFlow<T2, TMat> Via<T2, TMat2>(IGraph<FlowShape<TOut, T2>, TMat2> flow);
+
+        /// <inheritdoc/>
+        public override Source<TOut, TMat> MergeSubstreams() => MergeSubstreamsWithParallelism(int.MaxValue);
+
+        /// <inheritdoc/>
+        public override abstract Source<TOut, TMat> MergeSubstreamsWithParallelism(int parallelism);
+
+        /// <inheritdoc/>
+        public override Source<TOut, TMat> ConcatSubstream() => MergeSubstreamsWithParallelism(1);
+    }
+
+    /// <summary>
+    /// A <see cref="SubFlow{TOut,TMat,TClosed}"/> created from a <see cref="Flow{TIn,TOut,TMat}"/>.
+    /// </summary>
+    /// <typeparam name="TIn">TBD</typeparam>
+    /// <typeparam name="TOut">TBD</typeparam>
+    /// <typeparam name="TMat">TBD</typeparam>
+    public abstract class FlowSubFlow<TIn, TOut, TMat> : SubFlow<TOut, TMat, Sink<TIn, TMat>>
+    {
+        /// <inheritdoc/>
+        public override abstract FlowSubFlow<TIn, T2, TMat> Via<T2, TMat2>(IGraph<FlowShape<TOut, T2>, TMat2> flow);
+
+        /// <inheritdoc/>
+        public override Flow<TIn, TOut, TMat> MergeSubstreams() => MergeSubstreamsWithParallelism(int.MaxValue);
+
+        /// <inheritdoc/>
+        public override abstract Flow<TIn, TOut, TMat> MergeSubstreamsWithParallelism(int parallelism);
+
+        /// <inheritdoc/>
+        public override Flow<TIn, TOut, TMat> ConcatSubstream() => MergeSubstreamsWithParallelism(1);
+    }
 }

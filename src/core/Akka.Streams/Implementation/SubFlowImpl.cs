@@ -136,4 +136,84 @@ namespace Akka.Streams.Implementation
             throw new NotSupportedException();
         }
     }
+
+    internal sealed class SourceSubFlowImpl<TOut, TMat> : SourceSubFlow<TOut, TMat>
+    {
+        private readonly SubFlow<TOut, TMat, IRunnableGraph<TMat>> _inner;
+
+        public SourceSubFlowImpl(SubFlow<TOut, TMat, IRunnableGraph<TMat>> inner)
+        {
+            _inner = inner;
+        }
+
+        public override SourceSubFlow<T2, TMat> Via<T2, TMat2>(IGraph<FlowShape<TOut, T2>, TMat2> flow)
+        {
+            return new SourceSubFlowImpl<T2, TMat>((SubFlow<T2, TMat, IRunnableGraph<TMat>>)_inner.Via<T2, TMat2>(flow));
+        }
+
+        public override IFlow<T2, TMat3> ViaMaterialized<T2, TMat2, TMat3>(IGraph<FlowShape<TOut, T2>, TMat2> flow, Func<TMat, TMat2, TMat3> combine)
+        {
+            return _inner.ViaMaterialized(flow, combine);
+        }
+
+        public override IFlow<TOut, TMat2> MapMaterializedValue<TMat2>(Func<TMat, TMat2> mapFunc)
+        {
+            return _inner.MapMaterializedValue(mapFunc);
+        }
+
+        public override TMat2 RunWith<TMat2>(IGraph<SinkShape<TOut>, TMat2> sink, IMaterializer materializer)
+        {
+            return _inner.RunWith(sink, materializer);
+        }
+
+        public override IRunnableGraph<TMat> To<TMat2>(IGraph<SinkShape<TOut>, TMat2> sink)
+        {
+            return _inner.To(sink);
+        }
+
+        public override Source<TOut, TMat> MergeSubstreamsWithParallelism(int parallelism)
+        {
+            return (Source<TOut, TMat>)_inner.MergeSubstreamsWithParallelism(parallelism);
+        }
+    }
+
+    internal sealed class FlowSubFlowImpl<TIn, TOut, TMat> : FlowSubFlow<TIn, TOut, TMat>
+    {
+        private readonly SubFlow<TOut, TMat, Sink<TIn, TMat>> _inner;
+
+        public FlowSubFlowImpl(SubFlow<TOut, TMat, Sink<TIn, TMat>> inner)
+        {
+            _inner = inner;
+        }
+
+        public override FlowSubFlow<TIn, T2, TMat> Via<T2, TMat2>(IGraph<FlowShape<TOut, T2>, TMat2> flow)
+        {
+            return new FlowSubFlowImpl<TIn, T2, TMat>((SubFlow<T2, TMat, Sink<TIn, TMat>>)_inner.Via<T2, TMat2>(flow));
+        }
+
+        public override IFlow<T2, TMat3> ViaMaterialized<T2, TMat2, TMat3>(IGraph<FlowShape<TOut, T2>, TMat2> flow, Func<TMat, TMat2, TMat3> combine)
+        {
+            return _inner.ViaMaterialized(flow, combine);
+        }
+
+        public override IFlow<TOut, TMat2> MapMaterializedValue<TMat2>(Func<TMat, TMat2> mapFunc)
+        {
+            return _inner.MapMaterializedValue(mapFunc);
+        }
+
+        public override TMat2 RunWith<TMat2>(IGraph<SinkShape<TOut>, TMat2> sink, IMaterializer materializer)
+        {
+            return _inner.RunWith(sink, materializer);
+        }
+
+        public override Sink<TIn, TMat> To<TMat2>(IGraph<SinkShape<TOut>, TMat2> sink)
+        {
+            return _inner.To(sink);
+        }
+
+        public override Flow<TIn, TOut, TMat> MergeSubstreamsWithParallelism(int parallelism)
+        {
+            return (Flow<TIn, TOut, TMat>)_inner.MergeSubstreamsWithParallelism(parallelism);
+        }
+    }
 }

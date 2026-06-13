@@ -13,6 +13,7 @@ using Akka.Actor;
 using Akka.Event;
 using Akka.IO;
 using Akka.Streams.Dsl.Internal;
+using Akka.Streams.Implementation;
 using Akka.Streams.Stage;
 using Akka.Streams.Util;
 using Akka.Util;
@@ -1218,9 +1219,10 @@ namespace Akka.Streams.Dsl
         /// <param name="maxSubstreams">Configures the maximum number of substreams (keys) that are supported; if more distinct keys are encountered then the stream fails. Set to -1 for infinite substreams.</param>
         /// <param name="groupingFunc">Computes the key for each element</param>
         /// <returns>TBD</returns>
-        public static SubFlow<TOut, TMat, IRunnableGraph<TMat>> GroupBy<TOut, TMat, TKey>(this Source<TOut, TMat> flow, int maxSubstreams, Func<TOut, TKey> groupingFunc)
+        public static SourceSubFlow<TOut, TMat> GroupBy<TOut, TMat, TKey>(this Source<TOut, TMat> flow, int maxSubstreams, Func<TOut, TKey> groupingFunc)
         {
-            return flow.GroupBy(maxSubstreams, groupingFunc, (f, s) => ((Source<Source<TOut, NotUsed>, TMat>)f).To(s));
+            return new SourceSubFlowImpl<TOut, TMat>(
+                InternalFlowOperations.GroupBy(flow, maxSubstreams, groupingFunc, (f, s) => ((Source<Source<TOut, NotUsed>, TMat>)f).To(s)));
         }
 
         /// <summary>
@@ -1257,9 +1259,10 @@ namespace Akka.Streams.Dsl
         /// <param name="flow">TBD</param>
         /// <param name="groupingFunc">Computes the key for each element</param>
         /// <returns>TBD</returns>
-        public static SubFlow<TOut, TMat, IRunnableGraph<TMat>> GroupBy<TOut, TMat, TKey>(this Source<TOut, TMat> flow, Func<TOut, TKey> groupingFunc)
+        public static SourceSubFlow<TOut, TMat> GroupBy<TOut, TMat, TKey>(this Source<TOut, TMat> flow, Func<TOut, TKey> groupingFunc)
         {
-            return flow.GroupBy(-1, groupingFunc, (f, s) => ((Source<Source<TOut, NotUsed>, TMat>)f).To(s));
+            return new SourceSubFlowImpl<TOut, TMat>(
+                InternalFlowOperations.GroupBy(flow, -1, groupingFunc, (f, s) => ((Source<Source<TOut, NotUsed>, TMat>)f).To(s)));
         }
 
         /// <summary>
@@ -1321,9 +1324,10 @@ namespace Akka.Streams.Dsl
         /// <param name="substreamCancelStrategy">TBD</param>
         /// <param name="predicate">TBD</param>
         /// <returns>TBD</returns>
-        public static SubFlow<TOut, TMat, IRunnableGraph<TMat>> SplitWhen<TOut, TMat>(this Source<TOut, TMat> flow, SubstreamCancelStrategy substreamCancelStrategy, Func<TOut, bool> predicate)
+        public static SourceSubFlow<TOut, TMat> SplitWhen<TOut, TMat>(this Source<TOut, TMat> flow, SubstreamCancelStrategy substreamCancelStrategy, Func<TOut, bool> predicate)
         {
-            return flow.SplitWhen(substreamCancelStrategy, predicate, (f, s) => ((Source<Source<TOut, NotUsed>, TMat>)f).To(s));
+            return new SourceSubFlowImpl<TOut, TMat>(
+                InternalFlowOperations.SplitWhen(flow, substreamCancelStrategy, predicate, (f, s) => ((Source<Source<TOut, NotUsed>, TMat>)f).To(s)));
         }
 
         /// <summary>
@@ -1336,7 +1340,7 @@ namespace Akka.Streams.Dsl
         /// <param name="flow">TBD</param>
         /// <param name="predicate">TBD</param>
         /// <returns>TBD</returns>
-        public static SubFlow<TOut, TMat, IRunnableGraph<TMat>> SplitWhen<TOut, TMat>(this Source<TOut, TMat> flow, Func<TOut, bool> predicate)
+        public static SourceSubFlow<TOut, TMat> SplitWhen<TOut, TMat>(this Source<TOut, TMat> flow, Func<TOut, bool> predicate)
         {
             return SplitWhen(flow, SubstreamCancelStrategy.Drain, predicate);
         }
@@ -1389,9 +1393,10 @@ namespace Akka.Streams.Dsl
         /// <param name="substreamCancelStrategy">TBD</param>
         /// <param name="predicate">TBD</param>
         /// <returns>TBD</returns>
-        public static SubFlow<TOut, TMat, IRunnableGraph<TMat>> SplitAfter<TOut, TMat>(this Source<TOut, TMat> flow, SubstreamCancelStrategy substreamCancelStrategy, Func<TOut, bool> predicate)
+        public static SourceSubFlow<TOut, TMat> SplitAfter<TOut, TMat>(this Source<TOut, TMat> flow, SubstreamCancelStrategy substreamCancelStrategy, Func<TOut, bool> predicate)
         {
-            return flow.SplitAfter(substreamCancelStrategy, predicate, (f, s) => ((Source<Source<TOut, NotUsed>, TMat>)f).To(s));
+            return new SourceSubFlowImpl<TOut, TMat>(
+                InternalFlowOperations.SplitAfter(flow, substreamCancelStrategy, predicate, (f, s) => ((Source<Source<TOut, NotUsed>, TMat>)f).To(s)));
         }
 
         /// <summary>
@@ -1404,7 +1409,7 @@ namespace Akka.Streams.Dsl
         /// <param name="flow">TBD</param>
         /// <param name="predicate">TBD</param>
         /// <returns>TBD</returns>
-        public static SubFlow<TOut, TMat, IRunnableGraph<TMat>> SplitAfter<TOut, TMat>(this Source<TOut, TMat> flow, Func<TOut, bool> predicate)
+        public static SourceSubFlow<TOut, TMat> SplitAfter<TOut, TMat>(this Source<TOut, TMat> flow, Func<TOut, bool> predicate)
         {
             return SplitAfter(flow, SubstreamCancelStrategy.Drain, predicate);
         }
