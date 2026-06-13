@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broadcast-hub-broadcaster
+  namespace: akka-7253
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: broadcast-hub-broadcaster
+  template:
+    metadata:
+      labels:
+        app: broadcast-hub-broadcaster
+    spec:
+      containers:
+      - name: broadcaster
+        image: akka-7253/broadcast-hub-broadcaster:local
+        imagePullPolicy: Never
+        command: ["/bin/sh", "-c"]
+        args:
+        - ulimit -n "${NOFILE_SOFT:-1048576}" || true; exec dotnet BroadcastHubScale.Broadcaster.dll
+        ports:
+        - name: tcp
+          containerPort: 7000
+        - name: http
+          containerPort: 8080
+        env:
+        - name: TARGET_CONSUMERS
+          value: "20000"
+        - name: BUFFER_SIZE
+          value: "1024"
+        - name: QUEUE_BUFFER_SIZE
+          value: "1024"
+        - name: TCP_PORT
+          value: "7000"
+        - name: HTTP_PORT
+          value: "8080"
+        - name: TCP_BACKLOG
+          value: "32768"
+        - name: LOCKSTEP_MESSAGE_COUNT
+          value: "16"
+        - name: FILTER_MESSAGE_COUNT
+          value: "20000"
+        resources:
+          requests:
+            cpu: "2"
+            memory: 4Gi
+          limits:
+            cpu: "6"
+            memory: 12Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: broadcast-hub-broadcaster
+  namespace: akka-7253
+spec:
+  selector:
+    app: broadcast-hub-broadcaster
+  ports:
+  - name: tcp
+    port: 7000
+    targetPort: tcp
+  - name: http
+    port: 8080
+    targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: broadcast-hub-consumer
+  namespace: akka-7253
+spec:
+  clusterIP: None
+  selector:
+    app: broadcast-hub-consumer
+  ports:
+  - name: tcp
+    port: 7000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: broadcast-hub-consumer
+  namespace: akka-7253
+spec:
+  serviceName: broadcast-hub-consumer
+  replicas: 0
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: broadcast-hub-consumer
+  template:
+    metadata:
+      labels:
+        app: broadcast-hub-consumer
+    spec:
+      containers:
+      - name: consumer
+        image: akka-7253/broadcast-hub-consumer:local
+        imagePullPolicy: Never
+        env:
+        - name: BROADCASTER_HOST
+          value: broadcast-hub-broadcaster
+        - name: BROADCASTER_PORT
+          value: "7000"
+        - name: CONNECTIONS_PER_POD
+          value: "100"
+        - name: MODE
+          value: "filter"
+        - name: EXPECTED_MESSAGES
+          value: "1"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        resources:
+          requests:
+            cpu: "100m"
+            memory: 96Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi

@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-sanity
+  namespace: akka-7253
+spec:
+  clusterIP: None
+  selector:
+    app: cluster-sanity
+  ports:
+  - name: remote
+    port: 4053
+    targetPort: remote
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cluster-sanity
+  namespace: akka-7253
+spec:
+  serviceName: cluster-sanity
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: cluster-sanity
+  template:
+    metadata:
+      labels:
+        app: cluster-sanity
+    spec:
+      containers:
+      - name: cluster-sanity
+        image: akka-7253/cluster-sanity:local
+        imagePullPolicy: Never
+        ports:
+        - name: remote
+          containerPort: 4053
+        env:
+        - name: REMOTE_PORT
+          value: "4053"
+        - name: CLUSTER_REPLICAS
+          value: "3"
+        - name: TOTAL_SUBSCRIBERS
+          value: "20000"
+        - name: PUBLISH_DELAY_SECONDS
+          value: "60"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        resources:
+          requests:
+            cpu: "1"
+            memory: 1Gi
+          limits:
+            cpu: "4"
+            memory: 6Gi
