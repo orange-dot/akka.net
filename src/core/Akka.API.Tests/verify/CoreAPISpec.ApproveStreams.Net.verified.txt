@@ -2294,6 +2294,11 @@ namespace Akka.Streams.Dsl
         public StreamsAsyncEnumerableRerunnable(Akka.Streams.Dsl.Source<T, TMat> source, Akka.Streams.IMaterializer materializer, int minBuf, int maxBuf) { }
         public System.Collections.Generic.IAsyncEnumerator<T> GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken) { }
     }
+    public static class SubFlowMergeBackOperations
+    {
+        public static Akka.Streams.Dsl.Source<TOut, TMat> MergeBack<TOut, TMat>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> flow, int parallelism = 2147483647) { }
+        public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> MergeBack<TIn, TOut, TMat>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> flow, int parallelism = 2147483647) { }
+    }
     public static class SubFlowOperations
     {
         public static Akka.Streams.Dsl.SubFlow<TOut2, TMat, TClosed> Aggregate<TOut1, TOut2, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut1, TMat, TClosed> flow, TOut2 zero, System.Func<TOut2, TOut1, TOut2> fold) { }
