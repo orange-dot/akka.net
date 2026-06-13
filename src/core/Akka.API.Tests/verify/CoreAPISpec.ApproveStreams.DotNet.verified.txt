@@ -2314,6 +2314,8 @@ namespace Akka.Streams.Dsl
         public static Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> CompletionTimeout<TOut, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> flow, System.TimeSpan timeout) { }
         public static Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> Concat<TOut, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other) { }
         public static Akka.Streams.Dsl.SubFlow<TOut2, TMat, TClosed> ConcatMany<TOut1, TOut2, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut1, TMat, TClosed> flow, System.Func<TOut1, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat>> flatten) { }
+        public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> ConcatSubstreamAsFlow<TIn, TOut, TMat>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> flow) { }
+        public static Akka.Streams.Dsl.Source<TOut, TMat> ConcatSubstreamAsSource<TOut, TMat>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> flow) { }
         public static Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> Conflate<TOut, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> flow, System.Func<TOut, TOut, TOut> aggregate) { }
         public static Akka.Streams.Dsl.SubFlow<TSeed, TMat, TClosed> ConflateWithSeed<TOut, TMat, TSeed, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> flow, System.Func<TOut, TSeed> seed, System.Func<TSeed, TOut, TSeed> aggregate) { }
         public static Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> Delay<TOut, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> flow, System.TimeSpan of, Akka.Streams.DelayOverflowStrategy? strategy = default) { }
@@ -2347,6 +2349,10 @@ namespace Akka.Streams.Dsl
             where TOut : System.IComparable<TOut> { }
         public static Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> MergeSorted<TOut, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other, System.Collections.Generic.IComparer<TOut> comparer) { }
         public static Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> MergeSorted<TOut, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut>, TMat> other, System.Func<TOut, TOut, int> orderFunc) { }
+        public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> MergeSubstreamsAsFlow<TIn, TOut, TMat>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> flow) { }
+        public static Akka.Streams.Dsl.Source<TOut, TMat> MergeSubstreamsAsSource<TOut, TMat>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> flow) { }
+        public static Akka.Streams.Dsl.Flow<TIn, TOut, TMat> MergeSubstreamsWithParallelismAsFlow<TIn, TOut, TMat>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.Sink<TIn, TMat>> flow, int parallelism) { }
+        public static Akka.Streams.Dsl.Source<TOut, TMat> MergeSubstreamsWithParallelismAsSource<TOut, TMat>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, Akka.Streams.Dsl.IRunnableGraph<TMat>> flow, int parallelism) { }
         public static Akka.Streams.Dsl.SubFlow<T, TMat, TClosed> OrElse<T, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<T, TMat, TClosed> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<T>, TMat> secondary) { }
         public static Akka.Streams.Dsl.SubFlow<System.ValueTuple<System.Collections.Immutable.IImmutableList<TOut>, Akka.Streams.Dsl.Source<TOut, Akka.NotUsed>>, TMat, TClosed> PrefixAndTail<TOut, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut, TMat, TClosed> flow, int n) { }
         public static Akka.Streams.Dsl.SubFlow<TOut2, TMat, TClosed> Prepend<TOut1, TOut2, TMat, TClosed>(this Akka.Streams.Dsl.SubFlow<TOut1, TMat, TClosed> flow, Akka.Streams.IGraph<Akka.Streams.SourceShape<TOut2>, TMat> that)

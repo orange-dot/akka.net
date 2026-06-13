@@ -26,6 +26,87 @@ namespace Akka.Streams.Dsl
     public static class SubFlowOperations
     {
         /// <summary>
+        /// Flatten the sub-flows back into the original <see cref="Source{TOut,TMat}"/> by performing a merge
+        /// without parallelism limit.
+        /// </summary>
+        /// <typeparam name="TOut">The output type of the sub-flow.</typeparam>
+        /// <typeparam name="TMat">The materialized value of the original source.</typeparam>
+        /// <param name="flow">The sub-flow to flatten.</param>
+        /// <returns>The flattened source.</returns>
+        public static Source<TOut, TMat> MergeSubstreamsAsSource<TOut, TMat>(this SubFlow<TOut, TMat, IRunnableGraph<TMat>> flow)
+        {
+            return (Source<TOut, TMat>)flow.MergeSubstreams();
+        }
+
+        /// <summary>
+        /// Flatten the sub-flows back into the original <see cref="Flow{TIn,TOut,TMat}"/> by performing a merge
+        /// without parallelism limit.
+        /// </summary>
+        /// <typeparam name="TIn">The input type of the original flow.</typeparam>
+        /// <typeparam name="TOut">The output type of the sub-flow.</typeparam>
+        /// <typeparam name="TMat">The materialized value of the original flow.</typeparam>
+        /// <param name="flow">The sub-flow to flatten.</param>
+        /// <returns>The flattened flow.</returns>
+        public static Flow<TIn, TOut, TMat> MergeSubstreamsAsFlow<TIn, TOut, TMat>(this SubFlow<TOut, TMat, Sink<TIn, TMat>> flow)
+        {
+            return (Flow<TIn, TOut, TMat>)flow.MergeSubstreams();
+        }
+
+        /// <summary>
+        /// Flatten the sub-flows back into the original <see cref="Source{TOut,TMat}"/> by performing a merge
+        /// with the given parallelism limit.
+        /// </summary>
+        /// <typeparam name="TOut">The output type of the sub-flow.</typeparam>
+        /// <typeparam name="TMat">The materialized value of the original source.</typeparam>
+        /// <param name="flow">The sub-flow to flatten.</param>
+        /// <param name="parallelism">The maximum number of substreams to execute concurrently.</param>
+        /// <returns>The flattened source.</returns>
+        public static Source<TOut, TMat> MergeSubstreamsWithParallelismAsSource<TOut, TMat>(this SubFlow<TOut, TMat, IRunnableGraph<TMat>> flow, int parallelism)
+        {
+            return (Source<TOut, TMat>)flow.MergeSubstreamsWithParallelism(parallelism);
+        }
+
+        /// <summary>
+        /// Flatten the sub-flows back into the original <see cref="Flow{TIn,TOut,TMat}"/> by performing a merge
+        /// with the given parallelism limit.
+        /// </summary>
+        /// <typeparam name="TIn">The input type of the original flow.</typeparam>
+        /// <typeparam name="TOut">The output type of the sub-flow.</typeparam>
+        /// <typeparam name="TMat">The materialized value of the original flow.</typeparam>
+        /// <param name="flow">The sub-flow to flatten.</param>
+        /// <param name="parallelism">The maximum number of substreams to execute concurrently.</param>
+        /// <returns>The flattened flow.</returns>
+        public static Flow<TIn, TOut, TMat> MergeSubstreamsWithParallelismAsFlow<TIn, TOut, TMat>(this SubFlow<TOut, TMat, Sink<TIn, TMat>> flow, int parallelism)
+        {
+            return (Flow<TIn, TOut, TMat>)flow.MergeSubstreamsWithParallelism(parallelism);
+        }
+
+        /// <summary>
+        /// Flatten the sub-flows back into the original <see cref="Source{TOut,TMat}"/> by concatenating them.
+        /// </summary>
+        /// <typeparam name="TOut">The output type of the sub-flow.</typeparam>
+        /// <typeparam name="TMat">The materialized value of the original source.</typeparam>
+        /// <param name="flow">The sub-flow to flatten.</param>
+        /// <returns>The flattened source.</returns>
+        public static Source<TOut, TMat> ConcatSubstreamAsSource<TOut, TMat>(this SubFlow<TOut, TMat, IRunnableGraph<TMat>> flow)
+        {
+            return (Source<TOut, TMat>)flow.ConcatSubstream();
+        }
+
+        /// <summary>
+        /// Flatten the sub-flows back into the original <see cref="Flow{TIn,TOut,TMat}"/> by concatenating them.
+        /// </summary>
+        /// <typeparam name="TIn">The input type of the original flow.</typeparam>
+        /// <typeparam name="TOut">The output type of the sub-flow.</typeparam>
+        /// <typeparam name="TMat">The materialized value of the original flow.</typeparam>
+        /// <param name="flow">The sub-flow to flatten.</param>
+        /// <returns>The flattened flow.</returns>
+        public static Flow<TIn, TOut, TMat> ConcatSubstreamAsFlow<TIn, TOut, TMat>(this SubFlow<TOut, TMat, Sink<TIn, TMat>> flow)
+        {
+            return (Flow<TIn, TOut, TMat>)flow.ConcatSubstream();
+        }
+
+        /// <summary>
         /// Recover allows to send last element on failure and gracefully complete the stream
         /// Since the underlying failure signal onError arrives out-of-band, it might jump over existing elements.
         /// This stage can recover the failure signal, but not the skipped elements, which will be dropped.
