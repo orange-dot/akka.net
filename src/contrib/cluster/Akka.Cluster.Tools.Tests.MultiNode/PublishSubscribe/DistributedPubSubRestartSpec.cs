@@ -26,6 +26,15 @@ public class DistributedPubSubRestartSpecConfig : MultiNodeConfig
     public RoleName Second { get; }
     public RoleName Third { get; }
 
+    // Well-known actor on `first` that the restarted `third`'s Shutdown actor pings, on a
+    // repeating timer, the moment it exists (see Shutdown.PreStart and ReadyPingForwarder
+    // below). Must live under /user: a TestKit probe backs onto SystemActorOf and cannot be
+    // addressed at a fixed /user path itself, but a plain actor standing under /user in front
+    // of one can be.
+    internal const string ReadyActorName = "restart-ready";
+    internal const string ReadySignal = "third-restarted";
+    internal const string ReadyAck = "third-restarted-ack";
+
     public DistributedPubSubRestartSpecConfig()
     {
         First = Role("first");
@@ -37,7 +46,6 @@ public class DistributedPubSubRestartSpecConfig : MultiNodeConfig
                 akka.actor.provider = ""Akka.Cluster.ClusterActorRefProvider, Akka.Cluster""
                 akka.cluster.pub-sub.gossip-interval = 500ms
                 akka.remote.log-remote-lifecycle-events = off
-                akka.cluster.auto-down-unreachable-after = off
 
                 # THE fix for this spec's flake. Bound the transport failure detector so a peer that
                 # dies without a clean Disassociate PDU gets reaped fast. Under the test transport
@@ -56,14 +64,18 @@ public class DistributedPubSubRestartSpecConfig : MultiNodeConfig
                 akka.remote.transport-failure-detector.heartbeat-interval = 1s
                 akka.remote.transport-failure-detector.acceptable-heartbeat-pause = 5s
 
-                # No connection-timeout / retry-gate overrides - use the defaults, like the JVM spec
-                # and the sibling restart specs (a prior de-flake set connection-timeout = 5s, which
+                # No connection-timeout / retry-gate overrides - use the defaults, like the sibling
+                # restart specs (a prior de-flake set connection-timeout = 5s, which
                 # via the dot-netty handshake-timeout/connection-timeout conflation starved the
                 # re-association handshake; the default gives it the full 15s budget).
 
-                # second waits at the ""end"" barrier while first runs its closed-loop identify/kill
-                # window (dilated) plus the conductor-shutdown ack - kept well past the 30s default.
-                akka.testconductor.barrier-timeout = 120s
+                # The barrier-timeout clock arms the instant the FIRST node reaches a barrier, not
+                # when every node does - second parks at ""end"" almost immediately, while first is
+                # still working through, in order: the 30s Shutdown(third) cap, then up to a
+                # dilated 60s wait for third's restarted incarnation to make first contact (see
+                # the ready-ping comment below), then a 20s closed-loop kill.
+                # 30s + 60s + 20s = 110s; 180s leaves 70s of headroom on top of that.
+                akka.testconductor.barrier-timeout = 180s
             ").WithFallback(DistributedPubSub.DefaultConfig());
 
         TestTransport = true;
@@ -71,17 +83,117 @@ public class DistributedPubSubRestartSpecConfig : MultiNodeConfig
 
     internal class Shutdown : ReceiveActor
     {
-        public Shutdown()
+        private readonly Address _firstAddress;
+        private ICancelable? _readyPingTimer;
+        private ICancelable? _terminateTimer;
+
+        public Shutdown(Address firstAddress)
         {
+            _firstAddress = firstAddress;
             Context.GetLogger().Info("Shutdown actor started on {0}", Context.System.Name);
+
+            // The ping's ack (see PreStart). Stop resending the instant first proves it saw us -
+            // anything after that is a wasted send into an association that is already healed.
+            Receive<string>(str => str.Equals(ReadyAck), _ =>
+            {
+                _readyPingTimer?.Cancel();
+                _readyPingTimer = null;
+            });
+
             Receive<string>(str => str.Equals("shutdown"), _ =>
             {
                 // Reply BEFORE terminating so the sender (first) gets an observable ack that
                 // proves this incarnation received the kill. This ack is what lets first run a
                 // CLOSED-LOOP, self-verifying retry instead of an open-loop blind resend
-                // (mirrors the Subject actor in RemoteNodeRestartDeathWatchSpec, PR #8404).
+                // (mirrors the Subject actor in RemoteNodeRestartDeathWatchSpec, PR #8404) - but
+                // the ack still has to actually leave before the transport underneath it dies.
+                // Build 131332 (this PR's own CI run, Linux Artery) showed why an inline
+                // Terminate() cannot be trusted to let that happen: third's Shutdown actor replied
+                // "shutdown-ack" and called Context.System.Terminate() in the same handler at
+                // 02:26:57.990, and Artery tore down third's outbound streams before any of them
+                // could flush - "Artery Ordinary outbound connection to [first] failed ... with
+                // AbruptStageTerminationException" at 57.992 - so the ack never reached the socket.
+                // First then kept retrying "shutdown" every 500ms against a process that had
+                // already exited, and its 20s closed-loop kill timed out ("AwaitAssert failed,
+                // timeout [00:00:20] is over after [9] attempts"). Local runs only passed because
+                // the ack happened to win that race on a fast machine.
+                //
+                // So slide the terminate behind a timer instead of calling it inline - the same
+                // shape as the Subject actor in RemoteNodeRestartDeathWatchSpec (PR #8557): cancel
+                // any previous timer and re-arm a fresh one on every "shutdown", so a retried kill
+                // can never have its ack racing a system that is already tearing itself down.
+                // Capture the system reference, not Context, since the scheduled callback runs off
+                // the actor after this handler returns. 5s, not 2s: the timer has to outlive
+                // first's retry CYCLE, not just its retry interval. First's cycle is a 2s
+                // ExpectMsgAsync on the kill probe plus the 500ms AwaitAssertAsync interval between
+                // attempts = 2.5s, so a 2s timer can fire half a second before the next attempt
+                // lands - if THIS ack is lost, the system is already gone before first retries. 5s
+                // covers one full 2.5s cycle plus the same again, so the acked-and-then-lost case
+                // still gets a second attempt while this incarnation is alive, and it stays far
+                // below first's 20s closed-loop kill budget.
                 Sender.Tell("shutdown-ack");
-                Context.System.Terminate();
+                _terminateTimer?.Cancel();
+                var system = Context.System;
+                _terminateTimer = system.Scheduler.Advanced.ScheduleOnceCancelable(
+                    TimeSpan.FromSeconds(5), () => system.Terminate());
+            });
+        }
+
+        protected override void PreStart()
+        {
+            base.PreStart();
+
+            // This actor existing IS the fact first is waiting on below, so make the ping and
+            // that fact the same event instead of signalling readiness some other way that could
+            // race this actor's own creation.
+            //
+            // A single send is not enough to rely on: it is an ActorSelectionMessage, which rides
+            // the ORDINARY lane, and Artery's OutboundHandshakeStage holds one element on that
+            // lane while the handshake to this fresh incarnation is still gating. If that stage's
+            // materialization stops before the handshake completes, the held element is discarded
+            // and the ping is gone for good - first would then wait out its whole 60s window for
+            // nothing. So resend on a self-scheduled timer instead of sending once: every 500ms,
+            // undilated (this is a resend cadence, not a test assertion bound - see Scheduler
+            // .Advanced), until first proves it got one. The forwarder on first
+            // (ReadyPingForwarder, below) acks the sender directly, and that ack is what cancels
+            // this timer (also cancelled defensively in PostStop, in case the ack is somehow
+            // missed). First itself still only ever waits ONCE, on the first ping it sees, and
+            // ignores every later resend - it never calls ExpectMsg on the probe a second time.
+            var self = Self;
+            var readyActor = Context.System.ActorSelection(new RootActorPath(_firstAddress) / "user" / ReadyActorName);
+            var timer = new Cancelable(Context.System.Scheduler);
+            Context.System.Scheduler.Advanced.ScheduleRepeatedly(
+                TimeSpan.Zero, TimeSpan.FromMilliseconds(500), () => readyActor.Tell(ReadySignal, self), timer);
+            _readyPingTimer = timer;
+        }
+
+        protected override void PostStop()
+        {
+            _readyPingTimer?.Cancel();
+
+            // The sliding terminate timer above re-arms on every "shutdown" and is otherwise left
+            // running. Cancel it here so a stopped Shutdown actor can't have it fire later and
+            // terminate whatever ActorSystem happens to own it at that point.
+            _terminateTimer?.Cancel();
+            base.PostStop();
+        }
+    }
+
+    /// <summary>
+    /// Stands in for `first`'s side of the ready-ping handshake (see <see cref="Shutdown"/>
+    /// above). Acks every ping straight back to its sender - which is what lets the restarted
+    /// node's resend timer stop - and separately forwards the signal to <paramref name="target"/>
+    /// so the spec can observe that first contact was made. The spec only ever waits on `target`
+    /// once, so a resend that lands after that wait is simply left unread.
+    /// </summary>
+    internal sealed class ReadyPingForwarder : ReceiveActor
+    {
+        public ReadyPingForwarder(IActorRef target)
+        {
+            Receive<string>(str => str.Equals(ReadySignal), _ =>
+            {
+                Sender.Tell(ReadyAck);
+                target.Tell(ReadySignal);
             });
         }
     }
@@ -110,7 +222,7 @@ public class DistributedPubSubRestartSpec : MultiNodeClusterSpec
     public async Task A_Cluster_with_DistributedPubSub_must_startup_3_node_cluster()
     {
         // No Within wrapper: JoinAsync and "after-1" are barrier waits, and barriers must
-        // not run inside a Within (see the comment on the restart test below).
+        // not run inside a Within block (see the comment on the restart test below).
         await JoinAsync(_config.First, _config.First);
         await JoinAsync(_config.Second, _config.First);
         await JoinAsync(_config.Third, _config.First);
@@ -139,9 +251,16 @@ public class DistributedPubSubRestartSpec : MultiNodeClusterSpec
         await ExpectMsgAsync("msg1", 10.Seconds());
         await EnterBarrierAsync("got-msg1");
 
-        // All nodes capture baseline DeltaCount before node-specific logic
-        Mediator.Tell(DeltaCount.Instance);
-        var oldDeltaCount = await ExpectMsgAsync<long>();
+        // All nodes capture the baseline DeltaCount before node-specific logic. The baseline must
+        // be read AFTER pub-sub gossip goes quiet, not merely after CountAsync - see the comment on
+        // ReadStableDeltaCountAsync for why those are not the same moment.
+        var oldDeltaCount = await ReadStableDeltaCountAsync();
+
+        // Captured on EVERY node while all three systems are still alive. Third's original Sys
+        // terminates partway through its own restart below, and NodeAsync needs the
+        // TestConductor client that dies along with it - so first's address has to be in hand
+        // before that happens, not looked up afterward.
+        var firstAddress = (await NodeAsync(_config.First)).Address;
         await EnterBarrierAsync("old-delta-count");
 
         await RunOnAsync(async () =>
@@ -158,47 +277,60 @@ public class DistributedPubSubRestartSpec : MultiNodeClusterSpec
         await RunOnAsync(async () =>
         {
             var thirdAddress = (await NodeAsync(_config.Third)).Address;
-            await TestConductor.Shutdown(_config.Third).WaitAsync(30.Seconds());
 
-            // CLOSED-LOOP, self-verifying restart-kill (mirrors PR #8404 for the sibling
-            // RemoteNodeRestartDeathWatchSpec). This replaces a prior OPEN-LOOP resend
-            // (10 blind "shutdown" Tells over ~27s with no per-send verification). After the
-            // same-address restart, first's outbound endpoint to third is gated by the dead old
-            // incarnation's failing cluster heartbeats, so brand-new sends to the new incarnation
-            // collateral-drop to dead-letters for tens of seconds until a fresh association forms.
-            // An open-loop resend over that at-most-once, gated path has NO constant time bound:
-            // all blind shots can land inside the drop window, third never shuts down, and third's
-            // 120s WhenTerminated wait times out -> flake (five prior timeout/window tunings could
-            // not fix this because the drop window is unbounded).
-            //
-            // Instead, retry the WHOLE Identify -> Tell -> observe-ack cycle: every iteration
-            // re-pokes the association, so recovery is no longer hostage to blind send timing.
-            // The exit condition is OBSERVABLE - first only leaves the loop once third's new
-            // /user/shutdown incarnation acks the kill (proof it was received). Generous, dilated
-            // window (45s) so many association cycles fit even on loaded CI agents.
+            // Stand this up BEFORE Shutdown(third) so it exists no matter how fast the restarted
+            // incarnation comes back. It is the receiving end of the ready-ping the fresh
+            // Shutdown actor repeats from its own PreStart (see that class and
+            // ReadyPingForwarder, above) - reversing the direction of first contact from "first
+            // polls a stale association" to "third announces itself over an association with no
+            // history to carry", and acking every ping so third's resend timer knows to stop.
+            var readyProbe = CreateTestProbe();
+            Sys.ActorOf(
+                Props.Create(() => new DistributedPubSubRestartSpecConfig.ReadyPingForwarder(readyProbe.Ref)),
+                DistributedPubSubRestartSpecConfig.ReadyActorName);
+
+            await TestConductor.ShutdownAsync(_config.Third).WaitAsync(30.Seconds());
+
+            // Wait for third's restarted incarnation to make first contact, instead of starting
+            // this window's clock at Shutdown()'s return - before graceful CoordinatedShutdown,
+            // the fresh ActorSystem, the rebind, the self-join and third's own 5s ExpectNoMsg
+            // have even begun. This is not merely a signal: the inbound HandshakeReq that carries
+            // it is what completes first's outbound handshake to the new incarnation
+            // (InboundHandshakeStage.HandleReq -> CompleteHandshake), so by the time this
+            // returns, the ordinary lane the kill loop below uses is no longer gated on the dead
+            // old uid. Measured worst case for that whole sequence: 12.9s of graceful shutdown +
+            // 6s before the restarted actors even exist + 21s of re-association = 39.9s: the 60s
+            // bound leaves about 20s of margin above the measured worst case. And unlike a single
+            // send, this wait cannot be defeated by the ping itself getting lost in flight - see
+            // the resend timer in Shutdown.PreStart above - so it does not depend on any fix to
+            // how Artery's handshake stage handles a held element on stop.
+            await readyProbe.ExpectMsgAsync<string>(
+                msg => msg == DistributedPubSubRestartSpecConfig.ReadySignal, 60.Seconds());
+
+            // ActorSelection.Tell, not ResolveOne + a resolved ref: only an ActorSelectionMessage
+            // pierces a quarantined association (ArteryRemoting.Send drops a plain Tell to a
+            // quarantined peer; Pekko's Association.scala carries the identical carve-out, and
+            // upstream's own restart spec relies on exactly that). The ready-ping above is
+            // guaranteed to have healed the association by this point: readyProbe could only have
+            // received the ping above once first's inbound handshake to third's new incarnation
+            // had already completed (see the comment on that wait). So this loop is a short
+            // closed-loop confirmation, not the thing racing third's restart cost the way the
+            // old, Shutdown()-anchored window did.
+            var shutdownSelection = Sys.ActorSelection(new RootActorPath(thirdAddress) / "user" / "shutdown");
             await AwaitAssertAsync(async () =>
             {
-                // FRESH probe per attempt (JVM parity, DistributedPubSubRestartSpec.scala):
-                // reusing one probe livelocks because association establishment flushes the
-                // Identify messages buffered by the EndpointWriter as one burst of
-                // ActorIdentity(null) replies, and a reused probe then reads one STALE null per
-                // attempt forever - the backlog never drains even after /user/shutdown exists.
-                var probe = CreateTestProbe();
-                Sys.ActorSelection(new RootActorPath(thirdAddress) / "user" / "shutdown").Tell(new Identify(null), probe.Ref);
-                var subject = (await probe.ExpectMsgAsync<ActorIdentity>(2.Seconds())).Subject;
-                subject.Should().NotBeNull("third's restarted /user/shutdown must resolve before it can be killed");
-
-                // Subject resolved -> the association is live this iteration. Tell it "shutdown"
-                // and require the ack as proof of delivery. If the ack does not come back, the
-                // whole attempt fails and retries (fresh Identify + fresh Tell), re-poking the path.
-                subject.Tell("shutdown", probe.Ref);
-                await probe.ExpectMsgAsync<string>(msg => msg == "shutdown-ack", 3.Seconds());
-            }, 45.Seconds(), 1.Seconds());
+                // Fresh probe per attempt: a late ack from a previous attempt must never satisfy
+                // the next one. The Shutdown actor replies before it terminates, so the ack is
+                // proof that THIS incarnation received the message.
+                var killProbe = CreateTestProbe();
+                shutdownSelection.Tell("shutdown", killProbe.Ref);
+                await killProbe.ExpectMsgAsync<string>(msg => msg == "shutdown-ack", 2.Seconds());
+            }, 20.Seconds(), 500.Milliseconds());
 
             await EnterBarrierAsync("end");
 
-            // Use a probe to isolate the DeltaCount query from any stray ActorIdentity replies
-            // still draining into per-attempt probes from the closed-loop retries above.
+            // Read DeltaCount on its own probe so the pub-sub subscription on TestActor cannot
+            // mix into this query.
             var deltaProbe = CreateTestProbe();
             Mediator.Tell(DeltaCount.Instance, deltaProbe.Ref);
             var deltaCount = await deltaProbe.ExpectMsgAsync<long>(5.Seconds());
@@ -208,7 +340,22 @@ public class DistributedPubSubRestartSpec : MultiNodeClusterSpec
         await RunOnAsync(async () =>
         {
             var node3Address = Cluster.Get(Sys).SelfAddress;
-            await Sys.WhenTerminated.WaitAsync(30.Seconds());
+
+            // The fresh system below rebinds this exact host:port, so the old system has to
+            // release it first. Name that dependency on failure - a discarded or unexplained
+            // wait resurfaces later as a confusing bind error on the fresh system.
+            var terminationTimeout = 30.Seconds();
+            try
+            {
+                await Sys.WhenTerminated.WaitAsync(terminationTimeout);
+            }
+            catch (TimeoutException e)
+            {
+                throw new TimeoutException(
+                    $"Failed to stop [{Sys.Name}] within [{terminationTimeout}]. The fresh system " +
+                    $"cannot rebind [{node3Address}] until the old one releases it.", e);
+            }
+
             // Pin the fresh system to the SAME wire address for BOTH transports - under
             // AKKA_MNTR_TRANSPORT=artery the classic dot-netty key is inert and the fresh
             // system would bind a random artery canonical.port instead.
@@ -221,6 +368,18 @@ public class DistributedPubSubRestartSpec : MultiNodeClusterSpec
 
             try
             {
+                // Settle, on the next Linux failure, whether the listener came up on the pinned
+                // port at all. First's whole restart-detection path - the ready ping above and
+                // the kill loop's ActorSelection - depends on this system actually listening on
+                // node3Address's port, and nothing upstream of this line would surface a silent
+                // mismatch; it would just look like first's ready-ping wait timing out. Kept
+                // inside this try so a failed assertion still runs the finally below and shuts
+                // newSystem down instead of leaking it (and its pinned port).
+                var actualAddress = Cluster.Get(newSystem).SelfAddress;
+                newSystem.Log.Info("Restarted system bound to [{0}] (pinned [{1}])", actualAddress, node3Address);
+                actualAddress.Port.Should().Be(node3Address.Port,
+                    "the fresh system must rebind the address the other nodes still address it by");
+
                 // don't join the old cluster
                 await Cluster.Get(newSystem).JoinAsync(Cluster.Get(newSystem).SelfAddress);
                 var newMediator = DistributedPubSub.Get(newSystem).Mediator;
@@ -239,14 +398,21 @@ public class DistributedPubSubRestartSpec : MultiNodeClusterSpec
                 // We must complete the DeltaCount check above before this, otherwise there's
                 // a race where First triggers shutdown while we're still verifying.
                 newSystem.Log.Info("Creating shutdown actor on {0}", node3Address);
-                newSystem.ActorOf<DistributedPubSubRestartSpecConfig.Shutdown>("shutdown");
+                newSystem.ActorOf(
+                    Props.Create(() => new DistributedPubSubRestartSpecConfig.Shutdown(firstAddress)),
+                    "shutdown");
 
                 // First's closed-loop kill (above) normally drives this WhenTerminated: it keeps
                 // re-poking the association until third's /user/shutdown acks the kill, at which
-                // point newSystem terminates and this wait completes. Give it a generous 120s
-                // upper bound so first's whole worst-case pipeline (Shutdown-ack anchor sliding up
-                // to ~30s past third's restart clock, plus the 45s dilated identify/kill window)
-                // fits comfortably.
+                // point newSystem terminates and this wait completes. This wait's clock starts
+                // HERE, after the Shutdown actor above is already created - and that actor's own
+                // PreStart is what sends the ready ping - so by this instant first's 30s
+                // Shutdown(third) cap and its 60s ready-ping wait are already behind it; first is
+                // already inside (or past) its closed-loop kill. What is actually left of first's
+                // pipeline from this point is the 20s closed-loop kill, its last 2s ExpectMsgAsync
+                // attempt, and Shutdown's own 5s sliding terminate timer (see that class): about
+                // 27s worst case. 120s leaves roughly 90s of margin on top of that, which is why
+                // it is restored here rather than widened - there was no shortfall to fix.
                 //
                 // This wait is BEST-EFFORT: the spec's REAL assertions - the SubscribeAck /
                 // ExpectNoMsg / DeltaCount == 0 gossip-isolation checks above - have already run
@@ -299,24 +465,75 @@ public class DistributedPubSubRestartSpec : MultiNodeClusterSpec
 
     private async Task JoinAsync(RoleName from, RoleName to)
     {
-        await RunOnAsync(() =>
+        await RunOnAsync(async () =>
         {
-            Cluster.Get(Sys).Join(Node(to).Address);
+            Cluster.Get(Sys).Join((await NodeAsync(to)).Address);
             CreateMediator();
-            return Task.CompletedTask;
         }, from);
         await EnterBarrierAsync(from.Name + "-joined");
     }
 
-    private async Task CountAsync(int expected)
+    /// <summary>
+    /// Reads the mediator's DeltaCount, but only once the pub-sub gossip that feeds it has
+    /// stopped moving. Returns the settled value.
+    /// </summary>
+    private async Task<long> ReadStableDeltaCountAsync()
     {
-        var probe = CreateTestProbe();
-        // Gossip-propagation check: registrations spread on the 500ms pub-sub gossip tick,
-        // so bound it explicitly instead of relying on the 3s single-expect default.
+        // DeltaCount counts Delta MESSAGES received. It does not count registry changes, and the
+        // two diverge badly while a node is still learning the cluster.
+        //
+        // A mediator merges a bucket only if it already knows the bucket's owner as a cluster
+        // member. DistributedPubSubMediator's Delta handler increments _deltaCount first and only
+        // then tests _nodes.Contains(bucket.Owner). So while this node still waits for third's
+        // MemberUp, first pushes third's bucket on every 500ms gossip tick and this node discards
+        // every push - each discarded push still counted. Convergence therefore arrives as a BURST
+        // of Deltas, and redundant ones trail it: a peer keeps re-sending until our next outbound
+        // gossip tells it we caught up.
+        //
+        // CountAsync below unblocks on the FIRST push this node actually merges, so it returns
+        // while that burst is still draining. Reading the baseline right there captures a mid-burst
+        // value and lets the trailing Deltas land after it - which is exactly the reported failure
+        // ("Expected value to be 3L, but found 4L" on second). Measured over 20 local runs the last
+        // Delta arrived only 104-1010ms before the old unguarded read, against a 500ms gossip tick:
+        // one delayed tick flips it.
+        //
+        // So gate the baseline on quiescence instead of reading mid-burst. Two samples 2s apart
+        // must agree. 2s = 4 ticks of this spec's 500ms gossip-interval, which covers our own
+        // outbound tick plus the peer's reaction to it, with slack. The 30s ceiling is
+        // convergence-scale headroom, not a budget to lean on - the gate settles on the second
+        // sample in practice. Fresh probe per sample, matching CountAsync, so a late reply cannot
+        // be mistaken for the next sample.
+        var previous = long.MinValue;
+        var settledValue = 0L;
         await AwaitAssertAsync(async () =>
         {
+            var probe = CreateTestProbe();
+            Mediator.Tell(DeltaCount.Instance, probe.Ref);
+            var current = await probe.ExpectMsgAsync<long>(1.Seconds());
+
+            var lastSeen = previous;
+            previous = current;
+            settledValue = current;
+
+            (current == lastSeen).Should().BeTrue(
+                "pub-sub gossip must go quiet before DeltaCount can serve as a baseline " +
+                $"(previous sample {lastSeen}, current sample {current})");
+        }, 30.Seconds(), 2.Seconds());
+
+        return settledValue;
+    }
+
+    private async Task CountAsync(int expected)
+    {
+        // Gossip-propagation check: registrations spread on the 500ms pub-sub gossip tick, so
+        // retry on that tick for 10s. Fresh probe and an explicit 1s bound per attempt - the
+        // reply is a local round trip, and inheriting the 3s single-expect default would spend
+        // the whole budget on three attempts and let a late reply be read as a stale count.
+        await AwaitAssertAsync(async () =>
+        {
+            var probe = CreateTestProbe();
             Mediator.Tell(Count.Instance, probe.Ref);
-            (await probe.ExpectMsgAsync<int>()).Should().Be(expected);
+            (await probe.ExpectMsgAsync<int>(1.Seconds())).Should().Be(expected);
         }, 10.Seconds(), 500.Milliseconds());
     }
 }
