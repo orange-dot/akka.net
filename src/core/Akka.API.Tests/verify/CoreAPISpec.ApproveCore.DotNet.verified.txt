@@ -2,6 +2,8 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.API.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Benchmarks")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Metrics")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Metrics.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Sharding")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Sharding.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Sharding.Tests.MultiNode")]
@@ -10,9 +12,11 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Tests.MultiNode")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Tools")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Cluster.Tools.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.DependencyInjection")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.DependencyInjection.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.DistributedData")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.DistributedData.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Docs.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.MultiNodeTestRunner.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Akka.Persistence")]
@@ -2220,6 +2224,12 @@ namespace Akka.Actor.Setup
             where T : Akka.Actor.Setup.Setup { }
         public static Akka.Actor.Setup.ActorSystemSetup Create(params Akka.Actor.Setup.Setup[] setup) { }
     }
+    public sealed class ExtensionsSetup : Akka.Actor.Setup.Setup
+    {
+        public System.Collections.Generic.IReadOnlyList<Akka.Actor.IExtensionId> ExtensionIds { get; }
+        public static Akka.Actor.Setup.ExtensionsSetup Create(params Akka.Actor.IExtensionId[] extensionIds) { }
+        public static Akka.Actor.Setup.ExtensionsSetup Create(System.Collections.Generic.IEnumerable<Akka.Actor.IExtensionId> extensionIds) { }
+    }
     public abstract class Setup
     {
         protected Setup() { }
@@ -3463,6 +3473,14 @@ namespace Akka.Event
     public class LoggerMailbox : Akka.Dispatch.Mailbox, Akka.Dispatch.ISemantics, Akka.Dispatch.IUnboundedMessageQueueSemantics, Akka.Dispatch.MessageQueues.IMessageQueue, Akka.Event.ILoggerMessageQueueSemantics
     {
         public LoggerMailbox(Akka.Actor.IActorRef owner, Akka.Actor.ActorSystem system) { }
+    }
+    public sealed class LoggerSetup : Akka.Actor.Setup.Setup
+    {
+        public Akka.Event.ILogMessageFormatter? Formatter { get; }
+        public System.Collections.Generic.IReadOnlyList<Akka.Actor.Props> Loggers { get; }
+        public static Akka.Event.LoggerSetup Create(params Akka.Actor.Props[] loggers) { }
+        public static Akka.Event.LoggerSetup Create(System.Collections.Generic.IEnumerable<Akka.Actor.Props> loggers) { }
+        public static Akka.Event.LoggerSetup Create(Akka.Event.ILogMessageFormatter formatter, params Akka.Actor.Props[] loggers) { }
     }
     public static class Logging
     {
@@ -5151,6 +5169,7 @@ namespace Akka.Serialization
     public class ByteArraySerializer : Akka.Serialization.SerializerV2
     {
         public ByteArraySerializer(Akka.Actor.ExtendedActorSystem system) { }
+        public override int Identifier { get; }
         public override object Deserialize(System.Buffers.ReadOnlySequence<byte> bytes, string manifest) { }
         public override object FromBinary(byte[] bytes, System.Type type) { }
         public override object FromBinary(byte[] bytes, string manifest) { }
@@ -5176,6 +5195,7 @@ namespace Akka.Serialization
         public NewtonSoftJsonSerializer(Akka.Actor.ExtendedActorSystem system) { }
         public NewtonSoftJsonSerializer(Akka.Actor.ExtendedActorSystem system, Akka.Configuration.Config config) { }
         public NewtonSoftJsonSerializer(Akka.Actor.ExtendedActorSystem system, Akka.Serialization.NewtonSoftJsonSerializerSettings settings) { }
+        public override int Identifier { get; }
         public override bool IncludeManifest { get; }
         public object Serializer { get; }
         public Newtonsoft.Json.JsonSerializerSettings Settings { get; }
@@ -5717,6 +5737,7 @@ namespace Akka.Util.Reflection
     }
     public static class TypeCache
     {
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(@"Resolves typeName by reflection when it is not already cached. The trimmer cannot tell which type that is, so it may have been trimmed away. Guard with TryGetCached plus AkkaFeatures.IsDynamicTypeLoadingSupported instead of calling this directly on a cache miss.")]
         public static System.Type GetType(string typeName) { }
     }
 }

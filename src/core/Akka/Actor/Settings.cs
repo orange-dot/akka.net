@@ -128,11 +128,11 @@ namespace Akka.Actor
             // even though the provider itself is perfectly resolvable.
             if (ProviderSelectionType is ProviderSelection.Custom)
             {
-                var providerType = Type.GetType(ProviderClass);
-                if (providerType == null)
-                    throw new ConfigurationException($"'akka.actor.provider' is not a valid type name : '{ProviderClass}'");
-                if (!typeof(IActorRefProvider).IsAssignableFrom(providerType))
-                    throw new ConfigurationException($"'akka.actor.provider' is not a valid actor ref provider: '{ProviderClass}'");
+                if (!AkkaFeatures.IsDynamicTypeLoadingSupported)
+                    throw new ConfigurationException(AkkaFeatures.NotBuiltIn(
+                        "akka.actor.provider", ProviderClass, "one of the built-in providers (local, remote, cluster)"));
+
+                ValidateCustomProvider(ProviderClass);
             }
 
             SupervisorStrategyClass = Config.GetString("akka.actor.guardian-supervisor-strategy", null);
@@ -188,24 +188,36 @@ namespace Akka.Actor
             LoggerStartTimeout = Config.GetTimeSpan("akka.logger-startup-timeout", null);
             LoggerAsyncStart = Config.GetBoolean("akka.logger-async-start", false);
 
-            var loggerFormatterName = Config.GetString("akka.logger-formatter", null);
-            if (string.IsNullOrWhiteSpace(loggerFormatterName))
+            // A LoggerSetup formatter is the AOT-safe escape hatch for a third-party formatter (e.g.
+            // Akka.Logger.Serilog's SerilogLogMessageFormatter) that HOCON can no longer resolve by type
+            // name with dynamic type loading off; it wins over akka.logger-formatter when present.
+            var loggerSetupFormatter = Setup.Get<LoggerSetup>().Select(s => s.Formatter).GetOrElse(null);
+            if (loggerSetupFormatter is not null)
             {
-                LogFormatter = DefaultLogMessageFormatter.Instance;
-            }
-            else if (TypeExtensions.ToBuiltInAkkaTypeName(loggerFormatterName) is { } builtInLogFormatterName &&
-                     BuiltInLogMessageFormatters.TryGetValue(builtInLogFormatterName, out var logFormatterFactory))
-            {
-                LogFormatter = logFormatterFactory();
-            }
-            else if (AkkaFeatures.IsDynamicTypeLoadingSupported)
-            {
-                LogFormatter = CreateLogMessageFormatter(loggerFormatterName);
+                LogFormatter = loggerSetupFormatter;
             }
             else
             {
-                throw new ConfigurationException(AkkaFeatures.NotBuiltIn(
-                    "akka.logger-formatter", loggerFormatterName, "one of the built-in log message formatters"));
+                var loggerFormatterName = Config.GetString("akka.logger-formatter", null);
+                if (string.IsNullOrWhiteSpace(loggerFormatterName))
+                {
+                    LogFormatter = DefaultLogMessageFormatter.Instance;
+                }
+                else if (TypeExtensions.ToBuiltInAkkaTypeName(loggerFormatterName) is { } builtInLogFormatterName &&
+                         BuiltInLogMessageFormatters.TryGetValue(builtInLogFormatterName, out var logFormatterFactory))
+                {
+                    LogFormatter = logFormatterFactory();
+                }
+                else if (AkkaFeatures.IsDynamicTypeLoadingSupported)
+                {
+                    LogFormatter = CreateLogMessageFormatter(loggerFormatterName);
+                }
+                else
+                {
+                    throw new ConfigurationException(AkkaFeatures.NotBuiltIn(
+                        "akka.logger-formatter", loggerFormatterName,
+                        "one of the built-in log message formatters, or a LoggerSetup formatter"));
+                }
             }
 
             //handled
@@ -550,6 +562,16 @@ namespace Akka.Actor
                 throw new MissingMethodException(
                     "Log message formatter must inherit from the ILogMessageFormatter and have an empty constructor.");
             }
+        }
+
+        [RequiresUnreferencedCode("Validates a custom [akka.actor.provider] type by name. The trimmer cannot tell which type that is, so it may have been trimmed away.")]
+        private static void ValidateCustomProvider(string providerClass)
+        {
+            var providerType = Type.GetType(providerClass);
+            if (providerType == null)
+                throw new ConfigurationException($"'akka.actor.provider' is not a valid type name : '{providerClass}'");
+            if (!typeof(IActorRefProvider).IsAssignableFrom(providerType))
+                throw new ConfigurationException($"'akka.actor.provider' is not a valid actor ref provider: '{providerClass}'");
         }
     }
 }

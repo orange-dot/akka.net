@@ -55,6 +55,7 @@
         "Microservices",
         "MNTR",
         "mutex",
+        "netstandard",
         "Newtonsoft",
         "Ninject",
         "overridable",
@@ -127,7 +128,9 @@
 		"DeadLetter",
 		"Blocksharp",
 		"Akkatecture",
-		"SharpPulsar"
+		"SharpPulsar",
+		"remoted",
+		"blocklist"
     ],
     "ignoreRegExpList": [
         "\\((.*)\\)", // Markdown links
