@@ -146,28 +146,26 @@ serializer. See
 
 ### HOCON Registration
 
-A generated serializer derives from `AkkaSerializer`, then `SerializerV2`, then `Serializer`. So it
-satisfies Akka's classic reflection contract: a public constructor that takes
-`ExtendedActorSystem`, and a stable `Identifier`. You can register it exactly like any hand-written
-serializer, through the classic `akka.actor.serializers` and `serialization-bindings` HOCON blocks.
-Akka.Remote registers its own generated Artery control-message serializer this same way today, in
-`Remote.conf`:
+A generated serializer derives from `AkkaSerializer`, then `SerializerV2`, then
+`SerializerWithStringManifest`, then `Serializer`. So it satisfies Akka's classic reflection
+contract: a public constructor that takes `ExtendedActorSystem`, and a stable `Identifier`. You can register it exactly like any hand-written
+serializer, through the classic `akka.actor.serializers` and `serialization-bindings` HOCON blocks:
 
 ```hocon
 akka.actor {
   serializers {
-    artery-control = "Akka.Remote.Artery.ArteryControlMessageSerializer, Akka.Remote"
+    order-benchmark = "MyApp.OrderBenchmarkSerializer, MyApp"
   }
   serialization-bindings {
-    "Akka.Remote.Artery.IArteryControlMessage, Akka.Remote" = artery-control
-  }
-  serialization-identifiers {
-    "Akka.Remote.Artery.ArteryControlMessageSerializer, Akka.Remote" = 23
+    "MyApp.IOrderBenchmarkProtocol, MyApp" = order-benchmark
   }
 }
 ```
 
-Nothing about this is generator-specific. It is the same three HOCON blocks the
+The generated serializer emits its own `Identifier` in code, from the id in `[AkkaSerializer<T>]`, so
+it needs no `akka.actor.serialization-identifiers` row. A row for it would be ignored.
+
+Nothing about this is generator-specific. It is the same two HOCON blocks the
 [classic serializer documentation](xref:serialization#configuration) already describes. Use
 `CreateRegistration()` and `CreateSetup()` when you want AOT-safe, compiler-checked composition.
 Use HOCON when you follow an existing configuration-driven setup.
@@ -273,6 +271,11 @@ parameter has no covering `[AkkaField]` property. It then silently resets to its
 deserialize. **AKKASG028** fires when an `[AkkaField]` property is not an accessible instance
 property, such as a static property or a getter the generated code cannot reach.
 
+The same reach rule applies to the message type itself. The generated serializer is a separate
+class, so it cannot name a type declared `private` or `protected`, or nested inside one. A message
+nested in another class must be `internal` or `public`, and so must every type that contains it.
+**AKKASG045** reports a violation at the type declaration.
+
 ### Structs
 
 A `struct`, including a `readonly record struct`, can carry `[AkkaSerializable]` and `[AkkaField]`
@@ -324,7 +327,7 @@ public sealed record ShippingAddress(
 
 | Kind | Types | Notes |
 |---|---|---|
-| Scalars | `string`, `int`, `long`, `bool`, `double`, `decimal`, `Guid`, `DateTime`, `DateTimeOffset` | Native `MessagePackWriter`/`Reader` calls; see [Wire format](#wire-format) for the encoding each one uses. |
+| Scalars | `string`, `int`, `long`, `bool`, `double`, `float`, `short`, `byte`, `sbyte`, `ushort`, `uint`, `ulong`, `char`, `decimal`, `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan` | Native `MessagePackWriter`/`Reader` calls; see [Scalar encodings](#scalar-encodings) for the encoding each one uses. |
 | Raw bytes | `byte[]` | Encoded as a MessagePack `bin`, not an array of integers. |
 | Enums | Any `enum` backed by `sbyte`, `byte`, `short`, `ushort`, or `int` | Written as an `int32`. A `long`- or `uint`-backed enum fails compilation with **AKKASG014**. |
 | Nullable | `Nullable<T>` for any supported value type, plus nullable reference types | See [Nullable fields](#nullable-fields). |
@@ -334,17 +337,35 @@ public sealed record ShippingAddress(
 | Read-only collections | `IReadOnlyCollection<T>` (for example a `ReadOnlyCollection<T>`) | |
 | Immutable collections | `ImmutableArray<T>`, `ImmutableList<T>`, `ImmutableHashSet<T>`, `ImmutableDictionary<TKey,TValue>` | Every collection shape shares identical wire framing; only the in-memory construction on deserialize differs. |
 | Actor references | `IActorRef` | Native support via `Serialization.SerializedActorPath` and `Provider.ResolveActorRef`. No formatter needed. |
-| Addresses and paths | `Akka.Actor.Address`, `Akka.Actor.ActorPath` | Via the built-in `AddressFormatter` and `ActorPathFormatter`. See [Hand-written formatters](#hand-written-formatters). Not native, since `Akka.Actor` cannot reference `Akka.Serialization.V2`. |
+| Addresses and paths | `Akka.Actor.Address`, `Akka.Actor.ActorPath` | Via the built-in `AddressFormatter` and `ActorPathFormatter`, as fields or inside any collection above. See [Hand-written formatters](#hand-written-formatters). Not native, since `Akka.Actor` cannot reference `Akka.Serialization.V2`. |
 | Nested messages | Any `[AkkaSerializable]` class or struct | See [Nested value objects](#nested-akkaserializable-value-objects). |
 | Closed generic constructions | A `[AkkaSerializable]` generic type, registered per closed construction | See [Closed generic registrations](#closed-generic-registrations). |
 | Unions | A closed, explicitly enumerated set of concrete types | See [Unions](#unions). |
 | Envelope payloads | A property typed `object` or `object?`, resolved through Akka's own serializer lookup at runtime | See [Envelope payloads](#envelope-payloads). |
 
-**Not supported:** `float`, `single`, plain `byte`, `sbyte`, `short`, `ushort`, `uint`, and `ulong`
-as scalar field types. These are only meaningful as an enum's underlying type. Also not supported:
-a mutable `HashSet<T>` or `ISet<T>`. Use `ImmutableHashSet<T>` instead. Also not supported yet: an
-`object` element inside a collection, such as `List<object>` or `object[]`. Any of these fails
-compilation with **AKKASG003**, naming the offending property and type.
+**Not supported:** a mutable `HashSet<T>` or `ISet<T>`. Use `ImmutableHashSet<T>` instead. Also not
+supported: a dictionary whose key type is `object`. Any of these fails compilation with
+**AKKASG003**, naming the offending property and type. So does a collection of a type that neither
+the generator nor a registered [formatter](#hand-written-formatters) handles. A foreign type that
+has no support at all, such as `Uri` or `Half`, fails with **AKKASG007**. Register a formatter for it.
+
+### Scalar Encodings
+
+| Type | Wire encoding |
+|---|---|
+| `string`, `bool`, `int`, `long` | MessagePack `str`, `bool`, and the smallest MessagePack integer that holds the value. |
+| `double` | MessagePack `float64`. |
+| `float` | MessagePack `float32`. |
+| `short`, `sbyte`, `byte`, `ushort`, `uint`, `ulong` | MessagePack integer, in the smallest encoding that holds the value, exactly as `int` and `long` are written. |
+| `char` | MessagePack unsigned integer of the character's UTF-16 code unit. |
+| `TimeSpan` | MessagePack integer (`int64`) of its `Ticks`. |
+
+Every one of these works as a field, as a `Nullable<T>` field, and as a collection element,
+dictionary key, or dictionary value. A nullable value that is absent is MessagePack `nil`; a present
+one is written exactly as the non-nullable type. Integers are read by value, not by width, so a peer
+may write the same number with a different MessagePack integer encoding. A value the target type
+cannot hold, such as `70000` read into a `short` or `-1` read into a `ulong`, throws a
+`MessagePackSerializationException` that names the type. It is never truncated.
 
 ## Unions
 
@@ -809,6 +830,12 @@ An earlier `dev` build marked this with an explicit `[AkkaEnvelopePayload]` attr
 attribute was removed before the first 1.6 beta; the `object` type now carries the same meaning on
 its own.
 
+The same rule applies to a collection element. A `List<object>`, an `object[]`, an
+`ImmutableList<object>`, or a `Dictionary<string, object>` value typed `object` or `object?` is an
+envelope payload for each element, with the same runtime lookup. A `null` element round-trips as
+`null` when the element type is `object?`. A dictionary *key* typed `object` is not supported
+(**AKKASG003**), since a round-tripped payload has no stable identity to hash.
+
 Reach for an envelope payload instead of a union when the set of possible payload types is not
 closed at compile time. A generic delivery wrapper is one example: its payload could be *any*
 message type in the application, including ones the wrapper's own serializer never sees. A payload
@@ -865,8 +892,8 @@ Some types cannot be annotated with `[AkkaSerializable]`. A core Akka type like
 `Akka.Actor.Address` is the most common case. It lives in an assembly that cannot reference
 `Akka.Serialization.V2` without creating a dependency cycle. Apply
 `[AkkaSerializerFormatter<TTarget, TFormatter>]` to the `[AkkaSerializer]` class instead. It routes
-every field of type `TTarget` through a hand-written `IAkkaMessagePackFormatter<TTarget>`
-implementation:
+every field of type `TTarget`, and every collection element, dictionary key, and dictionary value of
+type `TTarget`, through a hand-written `IAkkaMessagePackFormatter<TTarget>` implementation:
 
 ```csharp
 public interface IAkkaMessagePackFormatter<T>
@@ -944,6 +971,32 @@ public sealed partial class ControlMirrorSerializer : AkkaSerializer
     public static partial SerializerRegistration CreateRegistration();
 }
 ```
+
+### Formatters Inside Collections
+
+A registered formatter applies at every position a `TTarget` can sit, in every collection shape the
+generator supports: `T[]`, `List<T>`, `IReadOnlyList<T>`, `IReadOnlyCollection<T>`,
+`ImmutableArray<T>`, `ImmutableList<T>`, `ImmutableHashSet<T>`, the three dictionary shapes (as key
+or as value), and nested combinations such as `Dictionary<string, List<Address>>`. With
+`[AkkaSerializerFormatter<Address, AddressFormatter>]` registered, these all work:
+
+```csharp
+[AkkaSerializable(Manifest = "route-v1")]
+public sealed record Route(
+    [property: AkkaField(1)] List<Address> Hops,
+    [property: AkkaField(2)] Dictionary<Address, long> LastSeen,
+    [property: AkkaField(3)] ImmutableArray<Address> Candidates) : IRoutingProtocol;
+```
+
+The wire form is the array or map the collection already uses, with each element exactly the bytes the
+formatter writes at field position. There is no wrapper, so `Hops` above is `array(n)` of the 4-element
+`Address` arrays. As at field position, the generator owns `nil`: a `null` element, or an absent
+`Nullable<T>` element, is written as `nil` and the formatter only sees present values. `SizeOf` is
+summed over the elements, so the exact-size contract holds for the whole collection.
+
+A formatter registered for a type the generator also supports natively takes precedence at every
+position, not only at field position. Register an `IActorRef` formatter, for example, and `List<IActorRef>`
+uses it. Without one, `IActorRef` keeps its native encoding.
 
 ### The Two Built-in Formatters
 
@@ -1056,11 +1109,11 @@ diagnostic was retired with it, and the id stays a permanent gap.
 |---|---|---|---|
 | AKKASG001 | Error | Serializer name must be a non-empty string | The `Name` argument to `[AkkaSerializer<T>]` is null, empty, or whitespace. |
 | AKKASG002 | Error | Serializer id must be a positive integer | The `SerializerId` argument is zero or negative. |
-| AKKASG003 | Error | Unsupported field type | An `[AkkaField]` property's type isn't one the generator can encode. On an interface, an abstract class, or a type parameter, the message adds a hint: declare a closed member set with `[AkkaUnion]`, type it as the serializer's own protocol interface, or type the property as `object`. |
+| AKKASG003 | Error | Unsupported field type | An `[AkkaField]` property's type isn't one the generator can encode, or it is a collection with an element, key, or value that neither the generator nor a registered formatter can encode. On an interface, an abstract class, or a type parameter, the message adds a hint: declare a closed member set with `[AkkaUnion]`, type it as the serializer's own protocol interface, or type the property as `object`. |
 | AKKASG004 | Error | No serializable fields | An `[AkkaSerializable]` type has no `[AkkaField]` properties and didn't opt in with `AllowEmpty`. |
 | AKKASG005 | Error | Duplicate field index | Two `[AkkaField]` properties on the same type share an index. |
 | AKKASG006 | Error | Top-level message manifest is required | A type implementing the serializer's protocol has no `Manifest`. |
-| AKKASG007 | Error | Nested value object serialization definition is required | A nested field's type isn't `[AkkaSerializable]` with its own `[AkkaField]`s. |
+| AKKASG007 | Error | Nested value object serialization definition is required | A field's type isn't `[AkkaSerializable]` with its own `[AkkaField]`s and has no registered formatter. For a type declared in another assembly (including the BCL), the message names the assembly and offers a formatter, or `[AkkaSerializable]` in the type's own assembly. |
 | AKKASG008 | Error | Formatter type must not be abstract | A registered `TFormatter` is abstract and can't be instantiated. |
 | AKKASG009 | Error | Duplicate formatter registration | A serializer registers more than one formatter for the same target type. |
 | AKKASG010 | Error | Formatter constructor not usable | A formatter has neither a public parameterless constructor nor one taking `ExtendedActorSystem`. |
@@ -1095,6 +1148,7 @@ diagnostic was retired with it, and the id stays a permanent gap.
 | AKKASG042 | Info | Closed-set expansion produced constructions | A `ManifestPrefix` registration expanded; the message names how many constructions it produced. |
 | AKKASG043 | Error | Protocol is owned by an upstream serializer | A type declared here implements a protocol that a serializer in a referenced assembly already binds; that assembly can never see this type. See [Serializer Placement](#serializer-placement). |
 | AKKASG044 | Warning | Serializer has no messages | A serializer has no messages here, in any referenced assembly, or in its own registrations -- often a sign the serializer is placed upstream of its messages. See [Serializer Placement](#serializer-placement). |
+| AKKASG045 | Error | Message type is not accessible to generated code | An `[AkkaSerializable]` type, or a type that contains it, is `private`, `protected`, or `private protected`. The generated serializer cannot name it. Make it `internal` or `public`. |
 
 ## Limitations Today and Planned Changes
 
@@ -1102,9 +1156,9 @@ The generator reads what Roslyn can see at compile time: syntax trees for this c
 declarations, and compiled metadata for a referenced assembly's. Two concrete consequences follow
 today. First, a construction built through reflection over a type the generator never saw at
 compile time fails only when it is first sent. This never happens at compile time. A generic
-instantiation assembled dynamically at runtime is one example. Second, an `object` element inside a
-collection, such as `List<object>` or `object[]`, is not yet a supported envelope boundary; it fails
-compilation with **AKKASG003**.
+instantiation assembled dynamically at runtime is one example. Second, a dictionary whose key type is
+`object` fails compilation with **AKKASG003**. A round-tripped envelope payload has no stable
+identity to use as a lookup key.
 
 A top-level protocol implementor, a nested field type, a union member type, a marked union base's
 members, and a closed generic's own open definition can all live in a referenced assembly today;
@@ -1114,9 +1168,6 @@ The following work is planned. None of it ships on `dev` today. It is tracked ag
 [issue #8384](https://github.com/akkadotnet/akka.net/issues/8384) and
 `openspec/changes/messagepack-sourcegen-validation/design.md`:
 
-* **Support for an `object` element inside a collection.** A collection element typed `object`,
-  such as `List<object>` or `object[]`, is not yet a supported envelope boundary. It will follow
-  the same rule a property's own `object` type already follows today.
 * **Serializer parts.** Splitting a serializer's identity from its encoders, so a serializer
   declared upstream of its own messages can still dispatch them, composed explicitly at startup with
   no scanning. A documented follow-up, not needed by the shapes this generator targets today.

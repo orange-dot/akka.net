@@ -39,8 +39,7 @@ namespace Akka.Cluster
     }
 
     /// <summary>
-    /// Default downing provider used when no provider is configured and 'auto-down-unreachable-after'
-    /// is not enabled.
+    /// Downing provider used when no automatic downing provider is configured.
     /// </summary>
     public sealed class NoDowning : IDowningProvider
     {
@@ -54,26 +53,26 @@ namespace Akka.Cluster
         }
 
         /// <summary>
-        /// TBD
+        /// The configured margin before shards or singletons from a downed or removed partition are created in a surviving partition.
         /// </summary>
         public TimeSpan DownRemovalMargin => _cluster.Settings.DownRemovalMargin;
 
         /// <summary>
-        /// TBD
+        /// No actor is created by this provider.
         /// </summary>
         public Props DowningActorProps => null;
     }
 
     /// <summary>
-    /// TBD
+    /// Loads and creates a configured cluster downing provider.
     /// </summary>
     internal static class DowningProvider
     {
         /// <summary>
         /// Loads the <see cref="IDowningProvider"/> from configuration and instantiates it via reflection.
         /// </summary>
-        /// <param name="downingProviderType">TBD</param>
-        /// <param name="system">TBD</param>
+        /// <param name="downingProviderType">The provider type to instantiate.</param>
+        /// <param name="system">The actor system whose extended system instance is passed to the provider constructor.</param>
         /// <param name="cluster">The current cluster object.</param>
         /// <exception cref="ConfigurationException">
         /// This exception is thrown when the specified <paramref name="downingProviderType"/> does not implement <see cref="IDowningProvider"/>.

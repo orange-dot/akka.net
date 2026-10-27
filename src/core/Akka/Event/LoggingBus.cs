@@ -95,7 +95,8 @@ namespace Akka.Event
         }
 
         /// <summary>
-        /// Starts the loggers defined in the system configuration.
+        /// Starts the loggers from a <see cref="LoggerSetup"/> plus those in <c>akka.loggers</c> (additive).
+        /// Each logger type starts once; the <see cref="LoggerSetup"/> entry wins, as with <c>ExtensionsSetup</c>.
         /// </summary>
         /// <param name="system">The system that the loggers need to start monitoring.</param>
         /// <exception cref="ConfigurationException">
@@ -107,21 +108,33 @@ namespace Akka.Event
         internal void StartDefaultLoggers(ActorSystemImpl system)
         {
             var logName = SimpleName(this) + "(" + system.Name + ")";
-            var loggerTypes = system.Settings.Loggers;
             var timeout = system.Settings.LoggerStartTimeout;
             var shouldRemoveStandardOutLogger = true;
 
             LogLevel = Logging.LogLevelFor(system.Settings.LogLevel);
 
-            var taskInfos = new Dictionary<Task, string>();
-            foreach (var strLoggerType in loggerTypes)
+            var loggerSetupOpt = system.Settings.Setup.Get<LoggerSetup>();
+
+            // Resolve every akka.loggers entry before starting anything: a name that cannot be resolved throws,
+            // and a logger already started by then would be left constructing in a system that failed to start.
+            // Creating a Props starts nothing, and keeping Props (not Type) preserves the trim annotations.
+            var hoconLoggers = new List<Props>();
+            foreach (var strLoggerType in system.Settings.Loggers)
             {
                 var loggerType = GetBuiltInLoggerType(strLoggerType) ?? GetFirstPartyLoggerType(strLoggerType);
                 if (loggerType == null)
                 {
                     if (!AkkaFeatures.IsDynamicTypeLoadingSupported)
+                    {
+                        // The LoggerSetup loggers started below already cover a type the name points at, so there is
+                        // nothing left to resolve. This is how a library that ships its logger in default HOCON,
+                        // like Akka.TestKit, keeps that HOCON valid with the switch off.
+                        if (loggerSetupOpt.HasValue && IsRegisteredByLoggerSetup(loggerSetupOpt.Value, strLoggerType))
+                            continue;
+
                         throw new ConfigurationException(AkkaFeatures.NotBuiltIn(
-                            "akka.loggers", strLoggerType, "one of the built-in loggers"));
+                            "akka.loggers", strLoggerType, "one of the built-in loggers, or a logger registered through LoggerSetup"));
+                    }
 
                     loggerType = ResolveLoggerType(strLoggerType);
                     if (loggerType == null)
@@ -134,7 +147,39 @@ namespace Akka.Event
                     continue;
                 }
 
-                var (task, name) = AddLogger(system, loggerType, logName);
+                hoconLoggers.Add(Props.Create(loggerType));
+            }
+
+            var taskInfos = new Dictionary<Task, string>();
+            // LoggerSetup first, so it wins when both name the same type
+            var startedTypes = new HashSet<Type>();
+
+            if (loggerSetupOpt.HasValue)
+            {
+                foreach (var props in loggerSetupOpt.Value.Loggers)
+                {
+                    var loggerType = props.Type;
+
+                    if (typeof(MinimalLogger).IsAssignableFrom(loggerType))
+                    {
+                        shouldRemoveStandardOutLogger = false;
+                        continue;
+                    }
+
+                    if (!startedTypes.Add(loggerType))
+                        continue;
+
+                    var (task, name) = AddLogger(system, props, logName);
+                    taskInfos[task] = name;
+                }
+            }
+
+            foreach (var props in hoconLoggers)
+            {
+                if (!startedTypes.Add(props.Type))
+                    continue;
+
+                var (task, name) = AddLogger(system, props, logName);
                 taskInfos[task] = name;
             }
 
@@ -243,6 +288,29 @@ namespace Akka.Event
                 _ => null
             };
         }
+
+        // True when loggerTypeName names a type that setup already carries. Type name and assembly must both match,
+        // the same rule the first-party tables use; a bare name only matches a type from Akka itself, which is all
+        // Type.GetType would have found for it.
+        private static bool IsRegisteredByLoggerSetup(LoggerSetup setup, string loggerTypeName)
+        {
+            if (!Util.TypeExtensions.TrySplitTypeName(loggerTypeName, out var name, out var assembly))
+                return false;
+
+            foreach (var props in setup.Loggers)
+            {
+                var type = props.Type;
+                if (!string.Equals(type.FullName, name, StringComparison.Ordinal))
+                    continue;
+
+                if (assembly is null
+                        ? type.Assembly == typeof(LoggingBus).Assembly
+                        : string.Equals(assembly, type.Assembly.GetName().Name, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
 #nullable restore
 
         [RequiresUnreferencedCode("Loads the [akka.loggers] type by name. The trimmer cannot tell which type that is, so it may have been trimmed away.")]
@@ -252,14 +320,19 @@ namespace Akka.Event
             return Type.GetType(loggerTypeName);
         }
 
-        private (Task task, string name) AddLogger(
-            ActorSystemImpl system,
-            [DynamicallyAccessedMembers(Props.ActorTypeMembers)] Type loggerType,
-            string loggingBusName)
+        // every logger runs on the loggers dispatcher, whatever its Props said
+        private (Task task, string name) AddLogger(ActorSystemImpl system, Props props, string loggingBusName)
         {
+            props = props.WithDispatcher(system.Settings.LoggersDispatcher);
+            var loggerType = props.Type;
             var loggerName = CreateLoggerName(loggerType);
             var fullLoggerName = $"{loggerName} [{loggerType.FullName}]";
-            var logger = system.SystemActorOf(Props.Create(loggerType).WithDispatcher(system.Settings.LoggersDispatcher), loggerName);
+            var logger = system.SystemActorOf(props, loggerName);
+            return StartLogger(logger, fullLoggerName, loggingBusName);
+        }
+
+        private (Task task, string name) StartLogger(IActorRef logger, string fullLoggerName, string loggingBusName)
+        {
             var askTask = logger.Ask(new InitializeLogger(this), Timeout.InfiniteTimeSpan, _shutdownCts.Token);
 
             // Return the continuation task, not the ask task, so callers wait for
@@ -306,7 +379,9 @@ namespace Akka.Event
         private string CreateLoggerName(Type actorClass)
         {
             var id = Interlocked.Increment(ref _loggerId);
-            var name = "log" + id + "-" + SimpleName(actorClass);
+            // a generic type's name has a backtick (MyLogger`1), which isn't legal in an actor path
+            var simpleName = SimpleName(actorClass).Replace('`', '_');
+            var name = "log" + id + "-" + simpleName;
             return name;
         }
 

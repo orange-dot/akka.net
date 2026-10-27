@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Akka.Annotations;
@@ -22,9 +23,9 @@ namespace Akka.Util
         /// Returns true if <paramref name="type" /> implements/inherits <typeparamref name="T" />.
         /// <example><para>typeof(object[]).Implements&lt;IEnumerable&gt;() --&gt; true</para></example>
         /// </summary>
-        /// <typeparam name="T">TBD</typeparam>
+        /// <typeparam name="T">The type that <paramref name="type"/> is checked against.</typeparam>
         /// <param name="type">The type.</param>
-        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
+        /// <returns><c>true</c> if <paramref name="type"/> is assignable to <typeparamref name="T"/>; otherwise, <c>false</c>.</returns>
         public static bool Implements<T>(this Type type)
         {
             return Implements(type, typeof(T));
@@ -141,6 +142,35 @@ namespace Akka.Util
         }
 
         /// <summary>
+        /// INTERNAL API. A manifest-string lookup table for <paramref name="types"/>, keyed by both
+        /// <see cref="TypeQualifiedName"/> (what a serializer's manifest writes today) and the bare
+        /// <see cref="Type.FullName"/>, so a hit is a plain dictionary lookup with no regex.
+        /// </summary>
+        internal static Dictionary<string, Type> ManifestTable(params Type[] types)
+        {
+            var map = new Dictionary<string, Type>(types.Length * 2, StringComparer.Ordinal);
+            foreach (var t in types)
+            {
+                map[t.TypeQualifiedName()] = t;
+                map[t.FullName!] = t;
+            }
+            return map;
+        }
+
+        /// <summary>
+        /// INTERNAL API. Resolves <paramref name="manifest"/> against <paramref name="table"/> built by
+        /// <see cref="ManifestTable"/>: a direct hit first, then one retry with assembly identity stripped -
+        /// covers a versioned or legacy manifest spelling without parsing on every call.
+        /// </summary>
+        internal static bool TryResolveManifestType(this Dictionary<string, Type> table, string? manifest, out Type? type)
+        {
+            type = null;
+            // null goes to the caller's base path, which treats it as "no manifest"
+            return manifest is not null
+                   && (table.TryGetValue(manifest, out type) || table.TryGetValue(StripAssemblyIdentity(manifest), out type));
+        }
+
+        /// <summary>
         /// INTERNAL API
         ///
         /// The index of the comma that separates a type name from its assembly name - the first comma at
@@ -176,7 +206,7 @@ namespace Akka.Util
         /// Utility to be used by implementers to create a manifest from the type.
         /// The manifest is used to look up the type on deserialization.
         /// </summary>
-        /// <param name="type">TBD</param>
+        /// <param name="type">The type whose qualified name is formatted.</param>
         /// <returns>Returns the type qualified name including namespace and assembly, but not assembly version.</returns>
         [InternalApi]
         public static string TypeQualifiedName(this Type type)
@@ -193,4 +223,3 @@ namespace Akka.Util
         }
     }
 }
-

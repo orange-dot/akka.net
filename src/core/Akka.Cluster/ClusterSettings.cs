@@ -70,10 +70,6 @@ namespace Akka.Cluster
                 ) ? TimeSpan.Zero :
                 clusterConfig.GetTimeSpan("down-removal-margin", null);
 
-#pragma warning disable CS0618
-            AutoDownUnreachableAfter = clusterConfig.GetTimeSpanWithOffSwitch("auto-down-unreachable-after");
-#pragma warning restore CS0618
-
             Roles = clusterConfig.GetStringList("roles", new string[] { }).ToImmutableHashSet();
             AppVersion = Util.AppVersion.Create(clusterConfig.GetString("app-version"));
 
@@ -93,14 +89,22 @@ namespace Akka.Cluster
             VerboseGossipReceivedLogging = clusterConfig.GetBoolean("debug.verbose-receive-gossip-logging", false);
 
             var downingProviderClassName = clusterConfig.GetString("downing-provider-class", null);
-            if (!string.IsNullOrEmpty(downingProviderClassName))
-                DowningProviderType = Type.GetType(downingProviderClassName, true);
-#pragma warning disable CS0618
-            else if (AutoDownUnreachableAfter.HasValue)
-#pragma warning restore CS0618
-                DowningProviderType = typeof(AutoDowning);
-            else
+            if (string.IsNullOrEmpty(downingProviderClassName))
+            {
                 DowningProviderType = typeof(NoDowning);
+            }
+            else
+            {
+                if (IsRemovedAutoDowningProvider(downingProviderClassName))
+                {
+                    throw new ConfigurationException(
+                        "akka.cluster.downing-provider-class references Akka.Cluster.AutoDowning, which was removed in Akka.NET v1.6. " +
+                        "Configure Akka.Cluster.SBR.SplitBrainResolverProvider for production, or " +
+                        "Akka.Cluster.TestKit.AutoDowning from Akka.Cluster.TestKit for tests.");
+                }
+
+                DowningProviderType = Type.GetType(downingProviderClassName, true);
+            }
 
             RunCoordinatedShutdownWhenDown = clusterConfig.GetBoolean("run-coordinated-shutdown-when-down", false);
             
@@ -159,7 +163,7 @@ namespace Akka.Cluster
         public TimeSpan HeartbeatExpectedResponseAfter { get; }
 
         /// <summary>
-        /// TBD
+        /// The number of cluster members each node is configured to monitor with heartbeats.
         /// </summary>
         public int MonitoredByNrOfMembers { get; }
 
@@ -169,22 +173,22 @@ namespace Akka.Cluster
         public ImmutableList<Address> SeedNodes { get; }
 
         /// <summary>
-        /// TBD
+        /// The timeout used by the seed-node process while waiting for seed-node responses.
         /// </summary>
         public TimeSpan SeedNodeTimeout { get; }
 
         /// <summary>
-        /// TBD
+        /// The delay before retrying a failed cluster join, or <c>null</c> when retries are disabled.
         /// </summary>
         public TimeSpan? RetryUnsuccessfulJoinAfter { get; }
 
         /// <summary>
-        /// TBD
+        /// The delay before shutting down after seed-node joining fails, or <c>null</c> when shutdown is disabled.
         /// </summary>
         public TimeSpan? ShutdownAfterUnsuccessfulJoinSeedNodes { get; }
 
         /// <summary>
-        /// TBD
+        /// The configured initial delay before periodic cluster tasks begin.
         /// </summary>
         public TimeSpan PeriodicTasksInitialDelay { get; }
 
@@ -194,12 +198,12 @@ namespace Akka.Cluster
         public TimeSpan GossipInterval { get; }
 
         /// <summary>
-        /// TBD
+        /// The configured time to live for gossip messages.
         /// </summary>
         public TimeSpan GossipTimeToLive { get; }
 
         /// <summary>
-        /// TBD
+        /// The interval between periodic leader actions.
         /// </summary>
         public TimeSpan LeaderActionsInterval { get; }
 
@@ -213,23 +217,17 @@ namespace Akka.Cluster
         public TimeSpan PruneGossipTombstonesAfter { get; }
 
         /// <summary>
-        /// TBD
+        /// The interval at which the cluster checks the failure detector and updates local reachability observations for members.
         /// </summary>
         public TimeSpan UnreachableNodesReaperInterval { get; }
 
         /// <summary>
-        /// TBD
+        /// The interval for publishing internal cluster statistics, or <c>null</c> when periodic publication is disabled.
         /// </summary>
         public TimeSpan? PublishStatsInterval { get; }
 
         /// <summary>
-        /// Obsolete. No longer used as of Akka.NET v1.5.
-        /// </summary>
-        [Obsolete(message:"Deprecated as of Akka.NET v1.5.2 - clustering defaults to using KeepMajority SBR instead")]
-        public TimeSpan? AutoDownUnreachableAfter { get; }
-
-        /// <summary>
-        /// TBD
+        /// The roles configured for this actor system's cluster member.
         /// </summary>
         public ImmutableHashSet<string> Roles { get; }
 
@@ -239,37 +237,37 @@ namespace Akka.Cluster
         public AppVersion AppVersion { get; }
 
         /// <summary>
-        /// TBD
+        /// The configured probability of choosing a node with a different gossip view as a gossip recipient.
         /// </summary>
         public double GossipDifferentViewProbability { get; }
 
         /// <summary>
-        /// TBD
+        /// The cluster-size threshold at which the different-view gossip probability begins to decrease.
         /// </summary>
         public int ReduceGossipDifferentViewProbability { get; }
 
         /// <summary>
-        /// TBD
+        /// The dispatcher identifier used for cluster actors.
         /// </summary>
         public string UseDispatcher => _useDispatcher;
 
         /// <summary>
-        /// TBD
+        /// The duration of one tick in the cluster scheduler's timing wheel.
         /// </summary>
         public TimeSpan SchedulerTickDuration { get; }
 
         /// <summary>
-        /// TBD
+        /// The number of ticks in the cluster scheduler's timing wheel.
         /// </summary>
         public int SchedulerTicksPerWheel { get; }
 
         /// <summary>
-        /// TBD
+        /// The minimum number of cluster members required for the cluster to become operational.
         /// </summary>
         public int MinNrOfMembers { get; }
 
         /// <summary>
-        /// TBD
+        /// The minimum member count required for each configured role.
         /// </summary>
         public ImmutableDictionary<string, int> MinNrOfMembersOfRole { get; }
 
@@ -286,7 +284,7 @@ namespace Akka.Cluster
         public bool VerboseGossipReceivedLogging { get; }
 
         /// <summary>
-        /// TBD
+        /// The type of the configured downing provider, selected from <c>akka.cluster.downing-provider-class</c>, or <see cref="NoDowning"/> when unset.
         /// </summary>
         public Type DowningProviderType { get; }
 
@@ -321,6 +319,15 @@ namespace Akka.Cluster
         /// Set this to true if you're doing a rolling update from Akka.NET version older than 1.4.19.
         /// </summary>
         public bool UseLegacyHeartbeatMessage { get; }
+
+        private static bool IsRemovedAutoDowningProvider(string providerTypeName)
+        {
+            var typeAndAssembly = providerTypeName.Split(',');
+            if (!string.Equals(typeAndAssembly[0].Trim(), "Akka.Cluster.AutoDowning", StringComparison.Ordinal))
+                return false;
+
+            return typeAndAssembly.Length == 1
+                   || string.Equals(typeAndAssembly[1].Trim(), "Akka.Cluster", StringComparison.Ordinal);
+        }
     }
 }
-
